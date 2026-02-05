@@ -63,34 +63,16 @@ Complete these steps IN ORDER before Claude Code begins building. Each step prod
 - [ ] Ensure your account has credits or a payment method
 - [ ] Note: we will use `claude-sonnet-4-5-20250929` for most tasks and `claude-opus-4-6` for complex reasoning
 
-### Step 4: Google Cloud Project (for Google Drive)
+### Step 4: Google Cloud Project (for Google Drive) ✅ COMPLETED
 
-- [ ] Go to https://console.cloud.google.com
-- [ ] Create a new project: `ma-deal-os`
-- [ ] Enable these APIs (APIs & Services → Library):
-  - Google Drive API
-  - Google Docs API
-  - Google Sheets API (optional, useful for checklists)
-- [ ] Create OAuth 2.0 credentials:
-  - Go to **APIs & Services → Credentials → Create Credentials → OAuth Client ID**
-  - Application type: **Web application**
-  - Authorized redirect URIs: add `http://localhost:3000/api/auth/callback/google` and your production URL later
-  - Copy `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
-- [ ] Configure OAuth consent screen:
-  - User Type: External (or Internal if using Google Workspace)
-  - App name: `M&A Deal OS`
-  - Scopes: add `https://www.googleapis.com/auth/drive`, `https://www.googleapis.com/auth/documents`
-  - Add your email as a test user
-- [ ] Create a dedicated Google Drive folder structure for testing:
-  ```
-  M&A Deal OS/
-  ├── _Templates/
-  │   ├── SPA_Template_PE_Buyer.docx
-  │   ├── SPA_Template_Strategic_Buyer.docx
-  │   └── APA_Template.docx
-  ├── Project_Mercury/      ← (sample deal)
-  └── Project_Atlas/        ← (sample deal)
-  ```
+Uses a **Service Account** (no OAuth consent screens needed).
+
+- [x] Google Cloud project: `ma-deal-os`
+- [x] APIs enabled: Google Drive API, Google Docs API
+- [x] Service Account created: `ma-deal-os@ma-deal-os.iam.gserviceaccount.com`
+- [x] Service Account JSON key saved to `config/google-service-account.json` (gitignored)
+- [x] Google Drive folder `MA Deal OS` shared with service account as Editor
+- [x] `GOOGLE_DRIVE_ROOT_FOLDER_ID` captured
 
 ### Step 5: Microsoft Azure App Registration (for Outlook)
 
@@ -122,8 +104,7 @@ Complete these steps IN ORDER before Claude Code begins building. Each step prod
 - [ ] **Backend hosting:** Same Vercel project can host API routes via Next.js API routes, OR:
   - Use Railway (https://railway.app) for a standalone backend if needed
   - Railway free tier: $5 credit/month, enough for testing
-- [ ] Update OAuth redirect URIs in Google Cloud and Azure with your production domain:
-  - `https://yourdomain.com/api/auth/callback/google`
+- [ ] Update Microsoft OAuth redirect URI in Azure with your production domain:
   - `https://yourdomain.com/api/auth/callback/microsoft`
 
 ### Step 7: Embedding Model
@@ -142,21 +123,19 @@ Complete these steps IN ORDER before Claude Code begins building. Each step prod
 Before starting Claude Code, confirm you have ALL of these:
 
 ```
-SUPABASE_URL=https://xxxxx.supabase.co
-SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
 DATABASE_URL=postgresql://postgres:...@...supabase.co:5432/postgres
 
 ANTHROPIC_API_KEY=sk-ant-...
 
-GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-...
+GOOGLE_SERVICE_ACCOUNT_KEY_PATH=./config/google-service-account.json
+GOOGLE_DRIVE_ROOT_FOLDER_ID=...
 
 MICROSOFT_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 MICROSOFT_TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 MICROSOFT_CLIENT_SECRET=xxxxx
-
-OPENAI_API_KEY=sk-...          # Only if using OpenAI embeddings
 
 NEXTAUTH_SECRET=               # Generate: openssl rand -base64 32
 NEXTAUTH_URL=http://localhost:3000
@@ -168,17 +147,16 @@ NEXTAUTH_URL=http://localhost:3000
 
 | Credential | Source | Purpose | Required For |
 |-----------|--------|---------|-------------|
-| `SUPABASE_URL` | Supabase dashboard → Settings → API | Database connection | Backend, Web |
-| `SUPABASE_ANON_KEY` | Supabase dashboard → Settings → API | Client-side DB access (with RLS) | Web portal |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase dashboard → Settings → API | Database connection | Backend, Web |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase dashboard → Settings → API | Client-side DB access (with RLS) | Web portal |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase dashboard → Settings → API | Server-side DB access (bypasses RLS) | Backend only |
 | `DATABASE_URL` | Supabase dashboard → Settings → Database | Direct Postgres for migrations | Migrations only |
 | `ANTHROPIC_API_KEY` | Anthropic Console | Claude API calls | Backend |
-| `GOOGLE_CLIENT_ID` | Google Cloud Console | Google OAuth + Drive API | Backend, Web |
-| `GOOGLE_CLIENT_SECRET` | Google Cloud Console | Google OAuth | Backend |
+| `GOOGLE_SERVICE_ACCOUNT_KEY_PATH` | Google Cloud Console → Service Account → Keys | Google Drive API (service account auth) | Backend |
+| `GOOGLE_DRIVE_ROOT_FOLDER_ID` | Google Drive folder URL | Root folder for all deal folders | Backend |
 | `MICROSOFT_CLIENT_ID` | Azure Portal | Microsoft OAuth + Graph API | Backend, Web |
 | `MICROSOFT_TENANT_ID` | Azure Portal | Microsoft OAuth routing | Backend |
 | `MICROSOFT_CLIENT_SECRET` | Azure Portal | Microsoft OAuth | Backend |
-| `OPENAI_API_KEY` | OpenAI Platform (optional) | Embeddings if not using Voyage | Backend |
 | `NEXTAUTH_SECRET` | Self-generated | Session encryption | Web |
 | `NEXTAUTH_URL` | Your domain | OAuth callback base | Web |
 
@@ -209,7 +187,7 @@ NEXTAUTH_URL=http://localhost:3000
 | Component | Technology | Notes |
 |-----------|-----------|-------|
 | **Framework** | Next.js 14+ (App Router) | Full-stack React framework |
-| **Auth** | NextAuth.js (Auth.js) v5 | Google + Microsoft OAuth |
+| **Auth** | NextAuth.js (Auth.js) v5 | Microsoft OAuth for Outlook; simple session for portal |
 | **Styling** | Tailwind CSS + shadcn/ui | Rapid, consistent UI |
 | **State** | Zustand or React Query | Client state + server state |
 | **Deployment** | Vercel | Auto-deploy from GitHub |
@@ -218,7 +196,7 @@ NEXTAUTH_URL=http://localhost:3000
 
 | Component | Technology | Notes |
 |-----------|-----------|-------|
-| **Google Drive** | `googleapis` npm package | Official Google SDK |
+| **Google Drive** | `googleapis` npm package | Official Google SDK, using **Service Account** auth |
 | **Outlook/Email** | Microsoft Graph SDK (`@microsoft/microsoft-graph-client`) | Official MS SDK |
 | **LLM** | `@anthropic-ai/sdk` | Claude API |
 | **Document Processing** | `mammoth` (read), `docx` (write), `pdf-parse` (PDF) | Node.js document libraries |
@@ -383,7 +361,7 @@ ma-deal-os/
 │   │   └── src/
 │   │       ├── index.ts
 │   │       ├── google-drive/
-│   │       │   ├── client.ts         ← Google Drive API wrapper
+│   │       │   ├── client.ts         ← Google Drive API wrapper (Service Account auth)
 │   │       │   ├── sync.ts           ← Bidirectional sync logic
 │   │       │   ├── watcher.ts        ← Change detection
 │   │       │   └── folder-structure.ts ← Deal workspace management
@@ -464,10 +442,10 @@ CREATE TABLE users (
   name TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'attorney',  -- 'attorney', 'partner', 'paralegal', 'admin', 'external'
   firm TEXT,
-  google_access_token TEXT,               -- Encrypted
-  google_refresh_token TEXT,              -- Encrypted
-  microsoft_access_token TEXT,            -- Encrypted
-  microsoft_refresh_token TEXT,           -- Encrypted
+  google_access_token TEXT,               -- Not used (service account for Drive)
+  google_refresh_token TEXT,              -- Not used (service account for Drive)
+  microsoft_access_token TEXT,            -- Encrypted, for Outlook Graph API
+  microsoft_refresh_token TEXT,           -- Encrypted, for Outlook Graph API
   preferences JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -831,12 +809,13 @@ All API routes are Next.js App Router API routes in `apps/web/app/api/`.
 
 ### 6.1 Authentication
 
-**`POST /api/auth/[...nextauth]`** — NextAuth.js handles Google + Microsoft OAuth.
+**`POST /api/auth/[...nextauth]`** — NextAuth.js handles Microsoft OAuth (for Outlook email access).
 
 NextAuth config (`apps/web/lib/auth.ts`):
 ```typescript
-// Providers: Google (for Drive), Microsoft (for Outlook)
-// Callbacks: store access/refresh tokens in users table
+// Providers: Microsoft (for Outlook/Graph API email access)
+// Google Drive uses Service Account — no user OAuth needed
+// Callbacks: store Microsoft access/refresh tokens in users table
 // Session strategy: JWT
 ```
 
@@ -1106,9 +1085,12 @@ When a deal is created, the system creates this folder structure in Google Drive
 
 ### 9.3 Implementation Notes
 
-- Use `googleapis` npm package with OAuth2 tokens stored per-user in the `users` table.
+- Use `googleapis` npm package with **Service Account authentication**. Load the service account key from `GOOGLE_SERVICE_ACCOUNT_KEY_PATH` (the JSON file in `config/google-service-account.json`).
+- Initialize the Drive client using `google.auth.GoogleAuth` with the service account credentials and scopes `['https://www.googleapis.com/auth/drive']`.
+- All deal folders are created as subfolders of `GOOGLE_DRIVE_ROOT_FOLDER_ID`.
+- The service account email (`ma-deal-os@ma-deal-os.iam.gserviceaccount.com`) must have Editor access on the root folder.
 - Use Drive API v3 `files.list`, `files.create`, `files.get`, `files.export` (for Google Docs → DOCX conversion).
-- Set up a Google Drive webhook (`files.watch`) for real-time change notifications in production. For testing, use polling.
+- For testing, use polling to detect file changes. Add Drive webhooks (`files.watch`) for production.
 
 ---
 
@@ -1338,7 +1320,7 @@ export async function generateRedlineSummary(
 3. Set up Next.js app with Tailwind + shadcn/ui
 4. Set up Drizzle ORM with Supabase connection
 5. Create database schema and run initial migration
-6. Set up NextAuth with Google + Microsoft providers
+6. Set up NextAuth with Microsoft provider (for Outlook access)
 7. Create `.env.example` with all required variables
 8. Verify: app starts, auth works, database connects
 
@@ -1419,8 +1401,8 @@ export async function generateRedlineSummary(
 # SUPABASE
 # ============================================
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
 DATABASE_URL=postgresql://postgres:...@...supabase.co:5432/postgres
 
 # ============================================
@@ -1429,11 +1411,7 @@ DATABASE_URL=postgresql://postgres:...@...supabase.co:5432/postgres
 NEXTAUTH_SECRET=         # Generate: openssl rand -base64 32
 NEXTAUTH_URL=http://localhost:3000
 
-# Google OAuth (also used for Drive API)
-GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-...
-
-# Microsoft OAuth (also used for Graph API / Outlook)
+# Microsoft OAuth (for Outlook / Graph API email access)
 MICROSOFT_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 MICROSOFT_TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 MICROSOFT_CLIENT_SECRET=xxxxx
@@ -1443,20 +1421,16 @@ MICROSOFT_CLIENT_SECRET=xxxxx
 # ============================================
 ANTHROPIC_API_KEY=sk-ant-...
 
-# Only needed if using OpenAI for embeddings instead of Voyage
-OPENAI_API_KEY=sk-...
-
 # Embedding config
 EMBEDDING_PROVIDER=voyage   # 'voyage' or 'openai'
 EMBEDDING_MODEL=voyage-3    # or 'text-embedding-3-small'
 EMBEDDING_DIMENSIONS=1024   # 1024 for voyage-3, 1536 for openai
 
 # ============================================
-# GOOGLE DRIVE
+# GOOGLE DRIVE (Service Account)
 # ============================================
-# (Uses GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET above)
-# Per-user tokens stored in database
-GOOGLE_DRIVE_ROOT_FOLDER_ID=   # Optional: ID of parent folder for all deal folders
+GOOGLE_SERVICE_ACCOUNT_KEY_PATH=./config/google-service-account.json
+GOOGLE_DRIVE_ROOT_FOLDER_ID=   # ID of parent folder for all deal folders
 
 # ============================================
 # APPLICATION
