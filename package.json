@@ -1,0 +1,24 @@
+{
+  "name": "ma-deal-os",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "db:generate": "pnpm --filter @ma-deal-os/db generate",
+    "db:migrate": "pnpm --filter @ma-deal-os/db migrate",
+    "db:push": "pnpm --filter @ma-deal-os/db push",
+    "db:seed": "pnpm --filter @ma-deal-os/db seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}

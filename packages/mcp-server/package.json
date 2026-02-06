@@ -1,0 +1,20 @@
+{
+  "name": "@ma-deal-os/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@ma-deal-os/core": "workspace:*",
+    "@ma-deal-os/db": "workspace:*",
+    "@ma-deal-os/ai": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
