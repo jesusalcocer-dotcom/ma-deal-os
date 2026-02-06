@@ -143,5 +143,9 @@ vite.config.ts.timestamp-*
 .env*.local
 config/google-service-account.json
 
+# Turborepo cache
+.turbo/
+
 # EDGAR precedent database (large HTML files)
 precedent-database/
+test-data/precedent-database
