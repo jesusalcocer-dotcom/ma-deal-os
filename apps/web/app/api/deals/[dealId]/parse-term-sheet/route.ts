@@ -26,8 +26,10 @@ export async function POST(req: NextRequest, { params }: { params: { dealId: str
       text = await extractTextFromPdf(buffer);
     } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
       text = await extractTextFromDocx(buffer);
+    } else if (file.name.endsWith('.md') || file.name.endsWith('.txt')) {
+      text = buffer.toString('utf-8');
     } else {
-      return NextResponse.json({ error: 'Unsupported file type. Upload .docx or .pdf.' }, { status: 400 });
+      return NextResponse.json({ error: 'Unsupported file type. Upload .docx, .pdf, .md, or .txt.' }, { status: 400 });
     }
 
     if (!text.trim()) {

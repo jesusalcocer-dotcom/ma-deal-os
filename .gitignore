@@ -143,7 +143,5 @@ vite.config.ts.timestamp-*
 .env*.local
 config/google-service-account.json
 
-# Secrets - never commit these
-.env.local
-.env*.local
-config/google-service-account.json
+# EDGAR precedent database (large HTML files)
+precedent-database/

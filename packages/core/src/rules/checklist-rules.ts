@@ -216,6 +216,85 @@ export const CHECKLIST_RULES: ChecklistRule[] = [
       p.indemnification === 'COMBO_ESCROW_AND_RWI',
   },
 
+  // MERGER-SPECIFIC
+  {
+    document_type: 'CERTIFICATE_OF_MERGER',
+    document_name: 'Certificate of Merger',
+    category: 'closing',
+    trigger_rule: 'transaction_structure includes MERGER',
+    priority: 'critical',
+    sort_order: 75,
+    condition: (p) =>
+      p.transaction_structure === 'FORWARD_MERGER' ||
+      p.transaction_structure === 'REVERSE_MERGER' ||
+      p.transaction_structure === 'REVERSE_TRIANGULAR_MERGER',
+  },
+  {
+    document_type: 'VOTING_AGREEMENT',
+    document_name: 'Voting and Support Agreement(s)',
+    category: 'ancillary',
+    trigger_rule: 'transaction_structure includes MERGER',
+    priority: 'high',
+    sort_order: 76,
+    condition: (p) =>
+      p.transaction_structure === 'FORWARD_MERGER' ||
+      p.transaction_structure === 'REVERSE_MERGER' ||
+      p.transaction_structure === 'REVERSE_TRIANGULAR_MERGER',
+  },
+
+  // STOCK CONSIDERATION
+  {
+    document_type: 'STOCKHOLDER_AGREEMENT',
+    document_name: 'Stockholder Agreement',
+    category: 'ancillary',
+    trigger_rule: 'consideration includes BUYER_STOCK',
+    priority: 'high',
+    sort_order: 54,
+    condition: (p) => p.consideration?.includes('BUYER_STOCK') ?? false,
+  },
+  {
+    document_type: 'REGISTRATION_RIGHTS',
+    document_name: 'Registration Rights Agreement',
+    category: 'ancillary',
+    trigger_rule: 'consideration includes BUYER_STOCK',
+    priority: 'normal',
+    sort_order: 55,
+    condition: (p) => p.consideration?.includes('BUYER_STOCK') ?? false,
+  },
+
+  // CARVEOUT-SPECIFIC
+  {
+    document_type: 'IP_LICENSE',
+    document_name: 'IP License Agreement',
+    category: 'ancillary',
+    trigger_rule: 'is_carveout === true and transaction_structure === ASSET_PURCHASE',
+    priority: 'high',
+    sort_order: 83,
+    condition: (p) => p.is_carveout === true && p.transaction_structure === 'ASSET_PURCHASE',
+  },
+  {
+    document_type: 'SUBLEASE_AGREEMENT',
+    document_name: 'Sublease Agreement',
+    category: 'ancillary',
+    trigger_rule: 'is_carveout === true and tsa.required === true',
+    priority: 'normal',
+    sort_order: 84,
+    condition: (p) => p.is_carveout === true && p.tsa?.required === true,
+  },
+
+  // RETENTION
+  {
+    document_type: 'RETENTION_AGREEMENT',
+    document_name: 'Employee Retention Agreement(s)',
+    category: 'employment',
+    trigger_rule: 'key_employees.treatment includes RETENTION_BONUSES or COMBO',
+    priority: 'normal',
+    sort_order: 23,
+    condition: (p) =>
+      p.key_employees?.treatment === 'RETENTION_BONUSES' ||
+      p.key_employees?.treatment === 'COMBO',
+  },
+
   // ASSET PURCHASE SPECIFIC
   {
     document_type: 'BILL_OF_SALE',

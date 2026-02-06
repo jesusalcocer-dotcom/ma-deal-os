@@ -65,12 +65,15 @@ def search_edgar(query: str, forms: str = "8-K", start_date: str = "2023-01-01",
 
     for hit in hits[:max_results]:
         source = hit.get("_source", {})
+        # EFTS API uses 'ciks' (array), 'display_names' (array), 'adsh', 'form'
+        ciks = source.get("ciks", [])
+        display_names = source.get("display_names", [])
         results.append({
-            "entity_name": source.get("entity_name", "Unknown"),
+            "entity_name": display_names[0] if display_names else "Unknown",
             "file_date": source.get("file_date", ""),
-            "form_type": source.get("form_type", ""),
-            "cik": str(source.get("entity_cik", "")),
-            "accession": source.get("accession_no", ""),
+            "form_type": source.get("form", ""),
+            "cik": ciks[0].lstrip("0") if ciks else "",
+            "accession": source.get("adsh", ""),
         })
 
     return results
