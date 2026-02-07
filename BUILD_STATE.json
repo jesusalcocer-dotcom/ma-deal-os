@@ -1,10 +1,10 @@
 {
   "version": "2.0",
   "project": "ma-deal-os",
-  "current_phase": 9,
-  "current_step": 3,
-  "current_step_name": "Step 9.3: Conversational Encoding Pipeline",
-  "phase_title": "Phase 9: Partner Constitution & Governance",
+  "current_phase": 10,
+  "current_step": 1,
+  "current_step_name": "Pending — check skills/phase-10.md",
+  "phase_title": "Phase 10 (Next)",
   "completed_phases": [
     {
       "phase": 0,
@@ -59,12 +59,18 @@
       "title": "Skills System",
       "completed_at": "2026-02-07T22:00:00Z",
       "test_report": "docs/test-results/phase8_test_report.md"
+    },
+    {
+      "phase": 9,
+      "title": "Partner Constitution & Governance",
+      "completed_at": "2026-02-08T01:00:00Z",
+      "test_report": "docs/test-results/phase9_test_report.md"
     }
   ],
-  "last_completed_step": "9.2",
-  "last_completed_at": "2026-02-08T00:00:00Z",
-  "last_commit": "944c0dd",
-  "total_commits_this_session": 20,
+  "last_completed_step": "9.7",
+  "last_completed_at": "2026-02-08T01:00:00Z",
+  "last_commit": "f72ca8f",
+  "total_commits_this_session": 26,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -98,6 +104,12 @@
       "item": "skills_registry table (migration 013)",
       "severity": "HIGH",
       "impact": "Seed script works, table needs creation via Supabase Dashboard"
+    },
+    {
+      "phase": 9,
+      "item": "deals.constitution column (migration 014)",
+      "severity": "HIGH",
+      "impact": "PUT returns 500, GET returns null fallback. Encode pipeline works."
     }
   ],
   "verified_items": [
@@ -214,6 +226,18 @@
       "item": "Skill loader and registry",
       "verified_at": "2026-02-07T22:00:00Z",
       "result": "18K chars loaded, 5 skills found for drafting, 6 for DD"
+    },
+    {
+      "phase": 9,
+      "item": "Constitution encoding pipeline (Anthropic API)",
+      "verified_at": "2026-02-08T01:00:00Z",
+      "result": "3 items extracted: 2 constraints + 1 directive from natural language"
+    },
+    {
+      "phase": 9,
+      "item": "Constitution page renders",
+      "verified_at": "2026-02-08T01:00:00Z",
+      "result": "HTTP 200 at /deals/[dealId]/constitution"
     }
   ],
   "session_history": [
@@ -276,7 +300,12 @@
       "session_id": "s-08-session1",
       "started_at": "2026-02-07T21:00:00Z",
       "steps_completed": ["8.1", "8.2", "8.3", "8.4", "8.5", "8.6", "8.7", "8.8", "8.9"]
+    },
+    {
+      "session_id": "s-09-session1",
+      "started_at": "2026-02-08T00:00:00Z",
+      "steps_completed": ["9.1", "9.2", "9.3", "9.4", "9.5", "9.6", "9.7"]
     }
   ],
-  "notes": "Phase 9 in progress. Steps 9.1-9.2 complete (constitution types, schema, API routes). Migration 014 (constitution column) deferred. Step 9.3 next: conversational encoding pipeline."
+  "notes": "Phase 9 COMPLETE. Constitution data model, API routes (GET/PUT/encode), conversational encoding pipeline, Manager enforcement, consequence resolver enforcement, Web UI. Migration 014 deferred. Ready for Phase 10."
 }
