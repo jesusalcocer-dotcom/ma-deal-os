@@ -2,8 +2,8 @@
   "version": "2.0",
   "project": "ma-deal-os",
   "current_phase": 3,
-  "current_step": 3,
-  "current_step_name": "System Operations MCP Tools",
+  "current_step": 5,
+  "current_step_name": "Propagation Events Table",
   "phase_title": "MCP Infrastructure + Event Backbone",
   "completed_phases": [
     {
@@ -25,10 +25,10 @@
       "test_report": "docs/test-results/phase2_test_report.md"
     }
   ],
-  "last_completed_step": "3.2",
-  "last_completed_at": "2026-02-07T04:00:00Z",
-  "last_commit": "82d7cf6",
-  "total_commits_this_session": 2,
+  "last_completed_step": "3.4",
+  "last_completed_at": "2026-02-07T05:10:00Z",
+  "last_commit": "4ebece2",
+  "total_commits_this_session": 1,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -65,9 +65,14 @@
       "session_id": "s-03-session2",
       "started_at": "2026-02-07T04:00:00Z",
       "steps_completed": [
-        "3.2"
+        "3.2", "3.3"
       ]
+    },
+    {
+      "session_id": "s-03-session3",
+      "started_at": "2026-02-07T05:00:00Z",
+      "steps_completed": ["3.4"]
     }
   ],
-  "notes": "Phase 3 in progress. Steps 3.1-3.2 complete. MCP server has deal tools (get_deal_state, list_deals), checklist tools (get_checklist), document tools (get_documents), and precedent tools (search_precedent). All registered and building."
+  "notes": "Phase 3 in progress. Steps 3.1-3.4 complete. Event types defined (PropagationEventType, PropagationEvent, ActionChain, ProposedAction, ConsequenceMap). Starting step 3.5: Propagation Events Table."
 }
