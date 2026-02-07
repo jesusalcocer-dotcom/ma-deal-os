@@ -31,3 +31,5 @@ export { generateTestCases } from './learning/test-case-generator';
 export type { GeneratedTestCase } from './learning/test-case-generator';
 export { processFeedbackEvent } from './learning/learning-pipeline';
 export type { LearningPipelineResult } from './learning/learning-pipeline';
+export { loadNightlyConfig, getActiveDealsForChecking } from './scheduling/nightly-checks';
+export type { NightlyCheckConfig } from './scheduling/nightly-checks';
