@@ -1,38 +1,34 @@
 #!/usr/bin/env python3
 """
-autonomous-runner.py — Launch and monitor Claude Code for autonomous phase building.
+autonomous-runner.py V2 — Stream-JSON Bidirectional Architecture
+
+Maintains persistent Claude Code sessions (Build Agent + Supervisor) using
+stream-json stdin/stdout pipes. The runner monitors build output in real-time,
+injects course corrections mid-session, and escalates to the Supervisor when needed.
+
+Protocol: --input-format stream-json --output-format stream-json --verbose
+Tested and confirmed working with claude CLI v2.0.56.
 
 Usage:
-  python scripts/autonomous-runner.py                     # Auto-detect phase from BUILD_STATE.json
-  python scripts/autonomous-runner.py --phase 3           # Override to specific phase
-  python scripts/autonomous-runner.py --resume <id>       # Resume a previous session by ID
-  python scripts/autonomous-runner.py --auto-launch       # Skip confirmation, launch immediately
-  python scripts/autonomous-runner.py --max-sessions 5    # Cap the number of consecutive sessions
-  python scripts/autonomous-runner.py --output-format json # Machine-readable session results
-
-Features beyond the bash version:
-  - Session ID tracking and --resume support
-  - Cost tracking (estimated from session duration + BUILD_STATE.json)
-  - Stuck detection via git commit monitoring
-  - Auto-generates GUIDANCE.md when stuck conditions detected
-  - Updates skills/current-phase.md symlink between sessions
-  - JSON output mode for CI/CD integration
-  - Multi-session orchestration with configurable limits
+  python scripts/autonomous-runner.py                      # Start building
+  python scripts/autonomous-runner.py --max-turns 50       # Limit turns
+  python scripts/autonomous-runner.py --dry-run             # Pre-flight only
+  python scripts/autonomous-runner.py --no-supervisor       # Skip supervisor
+  python scripts/autonomous-runner.py --max-cost 100        # Cost cap ($)
 """
 
 from __future__ import annotations
 
 import argparse
-import datetime
 import json
 import os
-import re
 import shutil
+import signal
 import subprocess
 import sys
 import time
 import uuid
-from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -46,7 +42,6 @@ GUIDANCE_FILE = REPO_ROOT / "GUIDANCE.md"
 NEEDS_HUMAN_FILE = REPO_ROOT / "NEEDS_HUMAN.md"
 SKILLS_DIR = REPO_ROOT / "skills"
 SYMLINK_PATH = SKILLS_DIR / "current-phase.md"
-SESSION_LOG_DIR = REPO_ROOT / "docs" / "session-logs"
 SUPERVISOR_LOG_DIR = REPO_ROOT / "docs" / "supervisor-log"
 
 REQUIRED_ENV_VARS = [
@@ -55,80 +50,19 @@ REQUIRED_ENV_VARS = [
     "ANTHROPIC_API_KEY",
 ]
 
-# Stuck detection thresholds
-STUCK_NO_COMMIT_MINUTES = 15  # No git commit in this many minutes → stuck
-STUCK_SAME_STEP_SESSIONS = 3  # Same step across this many sessions → stuck
-STUCK_POLL_INTERVAL_SECONDS = 60  # How often to poll git log during a session
-
-# Cost estimation (rough per-minute rates for Claude Code sessions)
-ESTIMATED_COST_PER_MINUTE_USD = 0.12
-
-# Supervisor configuration
 CONFIG = {
+    "max_turns": 200,
+    "stuck_no_commit_seconds": 900,         # 15 min
+    "consecutive_errors_threshold": 3,
+    "max_no_progress_for_escalation": 2,     # 2 turns same step → escalate
+    "max_supervisor_calls_per_step": 3,
     "max_supervisor_cost_usd": 20.0,
-    "max_supervisor_calls_per_build_session": 3,
-    "supervisor_timeout_seconds": 600,
-    "needs_human_poll_interval_seconds": 120,
+    "needs_human_poll_seconds": 120,
+    "claude_model": "claude-opus-4-6",
 }
 
 # ============================================================
-# Supervisor Init Prompt
-# ============================================================
-
-SUPERVISOR_INIT_PROMPT = """You are the Supervisor Agent for the M&A Deal OS autonomous build.
-
-YOUR ROLE: You oversee a Build Agent (a separate Claude Code session) that follows skill files to build the system phase by phase. You are consulted when the Build Agent gets stuck, and at phase transitions for readiness review.
-
-READ THESE FILES NOW to understand the project:
-- CLAUDE.md (build protocol)
-- BUILD_STATE.json (current state)
-- SPEC.md (full specification — read thoroughly, this is your only chance)
-- The current skill file referenced in BUILD_STATE.json
-
-WHEN I BRING YOU AN ESCALATION, follow this framework:
-
-1. DIAGNOSE: What exactly failed? Quote the error if provided.
-2. ROOT CAUSE: Why? Categories: environment constraint, logic error, dependency missing, spec ambiguity, wrong approach.
-3. ALTERNATIVES: List 2-3 possible approaches:
-   - For each: what it does, what it trades off, likelihood of success
-4. DECISION: Which alternative and why. Reference these principles:
-   - Progress over perfection: a working stub beats a stuck session
-   - Test everything: never skip tests to save time
-   - Small commits: partial progress committed > perfect progress lost
-   - Work around environment constraints, don't fight them
-   - Never break existing functionality (Phases 0-2)
-5. ACTION: Write GUIDANCE.md with exact instructions for the Build Agent. Be specific — file paths, code patterns, exact commands. Then git add, commit, and push GUIDANCE.md.
-
-ALSO: After writing GUIDANCE.md, append a summary of your decision to docs/supervisor-log/decisions.md (create if it doesn't exist). Format:
-
-## [timestamp] Phase X Step Y — Issue Type
-**Diagnosis:** ...
-**Alternatives considered:** ...
-**Decision:** ...
-**Reasoning:** ...
-
-FOR PHASE TRANSITION REVIEWS, I'll ask you to assess readiness. Read the test report and next phase skill file, then:
-- Confirm readiness or flag risks
-- Note any deferred items that will block the next phase
-- Write any preparatory GUIDANCE.md if needed
-
-IF AN ISSUE IS BEYOND YOUR SCOPE:
-- The issue requires changing the spec or architecture
-- You've been consulted 2+ times about the exact same step with no progress
-- The issue involves credentials, security, or external service configuration
-
-Then write NEEDS_HUMAN.md instead of GUIDANCE.md with:
-- What happened
-- What you've considered
-- What the human needs to decide
-- Specific questions
-
-Respond with SUPERVISOR READY after reading all files."""
-
-SUPERVISOR_REINIT_SUFFIX = "\n\nAlso read docs/supervisor-log/decisions.md for your previous decisions on this project."
-
-# ============================================================
-# Colors (ANSI)
+# ANSI Colors
 # ============================================================
 
 class C:
@@ -136,112 +70,132 @@ class C:
     GREEN = "\033[0;32m"
     YELLOW = "\033[0;33m"
     BLUE = "\033[0;34m"
+    MAGENTA = "\033[0;35m"
     BOLD = "\033[1m"
     NC = "\033[0m"
 
-def log_info(msg: str) -> None:
-    print(f"{C.BLUE}[INFO]{C.NC} {msg}", flush=True)
-
-def log_ok(msg: str) -> None:
-    print(f"{C.GREEN}[OK]{C.NC} {msg}", flush=True)
-
-def log_warn(msg: str) -> None:
-    print(f"{C.YELLOW}[WARN]{C.NC} {msg}", flush=True)
-
-def log_error(msg: str) -> None:
-    print(f"{C.RED}[ERROR]{C.NC} {msg}", flush=True)
-
 # ============================================================
-# Data Structures
+# Graceful Shutdown
 # ============================================================
 
-@dataclass
-class SessionResult:
-    session_id: str
-    phase: int
-    step_before: int | None
-    step_after: int | None
-    status: str  # "completed", "advanced", "stuck", "error", "timeout"
-    commits: int
-    duration_seconds: float
-    estimated_cost_usd: float
-    blockers: list[str] = field(default_factory=list)
-    guidance_generated: bool = False
-    error: str | None = None
-    started_at: str = ""
-    finished_at: str = ""
-    output: str = ""  # Collected stdout for post-session analysis
+shutdown_requested = False
 
-    def to_dict(self) -> dict[str, Any]:
-        d = asdict(self)
-        # Exclude raw output from serialized dict to keep JSON logs manageable
-        d.pop("output", None)
-        return d
+def handle_sigint(signum, frame):
+    global shutdown_requested
+    if shutdown_requested:
+        print("\nForce quit.")
+        sys.exit(1)
+    shutdown_requested = True
+    print("\nCtrl+C — finishing current turn, then stopping...")
+
+signal.signal(signal.SIGINT, handle_sigint)
+
+# ============================================================
+# Logging — dual output to terminal + build_log.txt
+# ============================================================
+
+def _write_log(line: str):
+    """Append a line to build_log.txt."""
+    try:
+        with open(REPO_ROOT / "build_log.txt", "a") as f:
+            f.write(line + "\n")
+    except OSError:
+        pass
+
+def log_info(msg: str):
+    ts = datetime.now().strftime("%H:%M:%S")
+    display = f"[{ts}] {C.BLUE}[RUNNER]{C.NC} {msg}"
+    print(display, flush=True)
+    _write_log(f"[{ts}] [RUNNER] {msg}")
+
+def log_ok(msg: str):
+    ts = datetime.now().strftime("%H:%M:%S")
+    display = f"[{ts}] {C.GREEN}[OK]{C.NC} {msg}"
+    print(display, flush=True)
+    _write_log(f"[{ts}] [OK] {msg}")
+
+def log_warn(msg: str):
+    ts = datetime.now().strftime("%H:%M:%S")
+    display = f"[{ts}] {C.YELLOW}[WARN]{C.NC} {msg}"
+    print(display, flush=True)
+    _write_log(f"[{ts}] [WARN] {msg}")
+
+def log_error(msg: str):
+    ts = datetime.now().strftime("%H:%M:%S")
+    display = f"[{ts}] {C.RED}[ERROR]{C.NC} {msg}"
+    print(display, flush=True)
+    _write_log(f"[{ts}] [ERROR] {msg}")
+
+def log_build_line(line: str):
+    """Log a build agent output line."""
+    if not line:
+        return
+    ts = datetime.now().strftime("%H:%M:%S")
+    display = f"[{ts}] [BUILD] {line}"
+    print(display, flush=True)
+    _write_log(f"[{ts}] [BUILD] {line}")
+
+def log_supervisor_line(line: str):
+    """Log a supervisor output line."""
+    if not line:
+        return
+    ts = datetime.now().strftime("%H:%M:%S")
+    display = f"[{ts}] {C.MAGENTA}[SUPERVISOR]{C.NC} {line}"
+    print(display, flush=True)
+    _write_log(f"[{ts}] [SUPERVISOR] {line}")
+    # Also write to supervisor-specific log
+    try:
+        SUPERVISOR_LOG_DIR.mkdir(parents=True, exist_ok=True)
+        with open(SUPERVISOR_LOG_DIR / "supervisor_log.txt", "a") as f:
+            f.write(f"[{ts}] [SUPERVISOR] {line}\n")
+    except OSError:
+        pass
+
+def log_status(state: dict, cost: float, turn: int):
+    phase = state.get("current_phase", "?")
+    step = state.get("current_step", "?")
+    line = f"\n[STATUS] Phase {phase} | Step {step} | Turn {turn} | Cost: ${cost:.2f}\n"
+    print(line, flush=True)
+    _write_log(line.strip())
 
 # ============================================================
 # Helpers
 # ============================================================
 
-def run_cmd(
-    cmd: list[str] | str,
-    *,
-    capture: bool = True,
-    check: bool = True,
-    cwd: Path | None = None,
-    timeout: int | None = 30,
-    shell: bool = False,
-) -> subprocess.CompletedProcess[str]:
-    """Run a command and return the result."""
-    return subprocess.run(
-        cmd,
-        capture_output=capture,
-        text=True,
-        check=check,
-        cwd=cwd or REPO_ROOT,
-        timeout=timeout,
-        shell=shell,
-    )
-
 def load_build_state() -> dict[str, Any]:
-    """Load and return BUILD_STATE.json."""
     if not BUILD_STATE_FILE.exists():
-        log_error("BUILD_STATE.json not found. Cannot determine current phase.")
+        log_error("BUILD_STATE.json not found.")
         sys.exit(1)
     with open(BUILD_STATE_FILE) as f:
         return json.load(f)
 
-def save_build_state(state: dict[str, Any]) -> None:
-    """Write BUILD_STATE.json."""
-    with open(BUILD_STATE_FILE, "w") as f:
-        json.dump(state, f, indent=2)
-        f.write("\n")
+def git_pull():
+    try:
+        subprocess.run(
+            ["git", "pull", "origin", "main"],
+            cwd=REPO_ROOT, capture_output=True, text=True, timeout=30,
+        )
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        pass
 
-def skill_file_for_phase(phase: int) -> Path:
-    """Return the path to the skill file for a given phase."""
-    return SKILLS_DIR / f"phase-{phase:02d}.md"
-
-def update_symlink(phase: int) -> None:
-    """Update skills/current-phase.md to point to the correct phase file."""
+def update_symlink(phase: int):
     target = f"phase-{phase:02d}.md"
-    target_path = skill_file_for_phase(phase)
+    target_path = SKILLS_DIR / target
     if not target_path.exists():
         log_warn(f"Skill file {target} does not exist; skipping symlink update.")
         return
     if SYMLINK_PATH.is_symlink() or SYMLINK_PATH.exists():
         SYMLINK_PATH.unlink()
     SYMLINK_PATH.symlink_to(target)
-    log_ok(f"Symlink skills/current-phase.md -> {target}")
 
 def load_env_file() -> dict[str, str]:
-    """Load .env.local into a dict (does NOT modify os.environ)."""
     env_path = REPO_ROOT / ".env.local"
     if not env_path.exists():
         alt = REPO_ROOT / "apps" / "web" / ".env.local"
         if alt.exists():
-            log_info("Found apps/web/.env.local, copying to repo root")
             shutil.copy2(alt, env_path)
         else:
-            log_error("No .env.local found. Create one with required credentials.")
+            log_error("No .env.local found.")
             sys.exit(1)
     env_vars: dict[str, str] = {}
     with open(env_path) as f:
@@ -257,1174 +211,715 @@ def load_env_file() -> dict[str, str]:
                 os.environ[key] = value
     return env_vars
 
-def get_git_head_sha() -> str | None:
-    """Return the current HEAD commit SHA, or None if not a git repo."""
-    try:
-        r = run_cmd(["git", "rev-parse", "HEAD"])
-        return r.stdout.strip()
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-        return None
+# ============================================================
+# Stream-JSON Protocol
+# ============================================================
 
-def get_git_commit_count_since(sha: str) -> int:
-    """Count commits since a given SHA."""
-    try:
-        r = run_cmd(["git", "rev-list", "--count", f"{sha}..HEAD"])
-        return int(r.stdout.strip())
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
-        return 0
+def format_event(event: dict) -> str | None:
+    """Extract human-readable text from a stream-json event."""
+    etype = event.get("type")
 
-def get_last_commit_timestamp() -> datetime.datetime | None:
-    """Return the timestamp of the most recent git commit."""
-    try:
-        r = run_cmd(["git", "log", "-1", "--format=%aI"])
-        ts = r.stdout.strip()
-        if ts:
-            return datetime.datetime.fromisoformat(ts)
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-        pass
+    if etype == "assistant":
+        msg = event.get("message", {})
+        parts = []
+        for block in msg.get("content", []):
+            if block.get("type") == "text":
+                text = block.get("text", "")
+                if text:
+                    parts.append(text)
+            elif block.get("type") == "tool_use":
+                name = block.get("name", "unknown")
+                parts.append(f"[tool: {name}]")
+        return " ".join(parts) if parts else None
+
+    if etype == "result":
+        result_text = event.get("result", "")
+        if result_text:
+            # Truncate long results
+            if len(result_text) > 200:
+                return result_text[:200] + "..."
+            return result_text
+        return "[turn complete]"
+
     return None
 
-# ============================================================
-# Validation
-# ============================================================
 
-def validate_env_vars(env_vars: dict[str, str]) -> list[str]:
-    """Return list of missing required env vars."""
-    missing = []
-    for var in REQUIRED_ENV_VARS:
-        if not env_vars.get(var) and not os.environ.get(var):
-            missing.append(var)
-    return missing
+def send_message(proc: subprocess.Popen, text: str):
+    """Send a user message to a stream-json process."""
+    message = json.dumps({
+        "type": "user",
+        "message": {
+            "role": "user",
+            "content": [{"type": "text", "text": text}]
+        }
+    }) + "\n"
+    proc.stdin.write(message)
+    proc.stdin.flush()
 
-def validate_tools() -> bool:
-    """Check that required CLI tools are available."""
-    ok = True
 
-    # pnpm
-    if not shutil.which("pnpm"):
-        log_error("pnpm not found. Install: npm install -g pnpm")
-        ok = False
-    else:
-        log_ok("pnpm available")
-
-    # node
-    node = shutil.which("node")
-    if not node:
-        log_error("node not found")
-        ok = False
-    else:
+def read_until_complete(proc: subprocess.Popen, on_line=None) -> dict:
+    """
+    Read stdout lines until we get a 'result' event.
+    Returns dict with events, result, session_id, cost_usd, process_died.
+    """
+    collected = []
+    for line in iter(proc.stdout.readline, ''):
+        line = line.strip()
+        if not line:
+            continue
         try:
-            r = run_cmd(["node", "-v"])
-            version_str = r.stdout.strip().lstrip("v")
-            major = int(version_str.split(".")[0])
-            if major < 18:
-                log_error(f"Node.js {major} found, need 18+")
-                ok = False
-            else:
-                log_ok(f"Node.js v{version_str}")
-        except Exception:
-            log_warn("Could not determine Node.js version")
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            if on_line:
+                on_line(line)
+            continue
 
-    # claude
-    if not shutil.which("claude"):
-        log_error("claude CLI not found. Install Claude Code first.")
-        ok = False
-    else:
-        log_ok("claude CLI available")
+        collected.append(event)
 
-    # git
-    if not shutil.which("git"):
-        log_error("git not found")
-        ok = False
-    else:
-        log_ok("git available")
+        # Format and display
+        if on_line:
+            formatted = format_event(event)
+            if formatted:
+                on_line(formatted)
 
-    return ok
+        if event.get("type") == "result":
+            return {
+                "events": collected,
+                "result": event,
+                "session_id": event.get("session_id"),
+                "cost_usd": event.get("total_cost_usd", 0),
+                "process_died": False,
+            }
 
-def check_supabase_connectivity(env_vars: dict[str, str]) -> bool:
-    """Verify Supabase is reachable."""
-    url = env_vars.get("NEXT_PUBLIC_SUPABASE_URL", os.environ.get("NEXT_PUBLIC_SUPABASE_URL", ""))
-    key = env_vars.get("SUPABASE_SERVICE_ROLE_KEY", os.environ.get("SUPABASE_SERVICE_ROLE_KEY", ""))
-    if not url or not key:
-        return False
-    try:
-        r = run_cmd(
-            [
-                "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
-                f"{url}/rest/v1/deals?select=count&limit=0",
-                "-H", f"apikey: {key}",
-                "-H", f"Authorization: Bearer {key}",
-            ],
-            timeout=15,
+    # stdout closed — process died
+    return {
+        "events": collected,
+        "result": None,
+        "session_id": None,
+        "cost_usd": 0,
+        "process_died": True,
+    }
+
+# ============================================================
+# AgentSession — persistent stream-json session
+# ============================================================
+
+class AgentSession:
+    """Manages a persistent Claude Code stream-json session."""
+
+    def __init__(self, name: str, initial_prompt: str, model: str = None):
+        self.name = name
+        self.proc: subprocess.Popen | None = None
+        self.initial_prompt = initial_prompt
+        self.model = model or CONFIG["claude_model"]
+        self.turn_count = 0
+        self.total_cost = 0.0
+        self.session_id: str | None = None
+
+    def start(self) -> dict:
+        """Launch new Claude Code process and send initial prompt."""
+        self.proc = subprocess.Popen(
+            ["claude", "-p",
+             "--output-format", "stream-json",
+             "--input-format", "stream-json",
+             "--verbose",
+             "--dangerously-skip-permissions",
+             "--model", self.model],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=REPO_ROOT,
         )
-        code = r.stdout.strip()
-        if code in ("200", "206"):
-            log_ok("Supabase connection verified")
-            return True
-        else:
-            log_error(f"Supabase connection failed (HTTP {code})")
-            return False
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-        log_error("Supabase connection timed out")
-        return False
+        self.send(self.initial_prompt)
+        result = self.read_response()
+        self.session_id = result.get("session_id")
+        self.turn_count = 1
+        self.total_cost = result.get("cost_usd", 0)
+        return result
 
-def check_anthropic_key(env_vars: dict[str, str]) -> bool:
-    """Lightweight Anthropic API key check."""
-    key = env_vars.get("ANTHROPIC_API_KEY", os.environ.get("ANTHROPIC_API_KEY", ""))
-    if not key:
-        return False
-    try:
-        r = run_cmd(
-            [
-                "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
-                "https://api.anthropic.com/v1/messages",
-                "-H", f"x-api-key: {key}",
-                "-H", "anthropic-version: 2023-06-01",
-                "-H", "content-type: application/json",
-                "-d", '{"model":"claude-sonnet-4-5-20250929","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}',
-            ],
-            timeout=30,
-        )
-        code = r.stdout.strip()
-        if code == "200":
-            log_ok("Anthropic API key verified")
-            return True
-        elif code == "401":
-            log_error("Anthropic API key invalid (401)")
-            return False
-        else:
-            log_warn(f"Anthropic API returned HTTP {code} (may be rate limited, continuing)")
-            return True  # non-fatal
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-        log_warn("Anthropic API check timed out (continuing)")
-        return True
+    def send(self, text: str):
+        """Send a user message."""
+        if not self.is_alive():
+            raise RuntimeError(f"{self.name} session is dead")
+        send_message(self.proc, text)
 
-def check_git_clean() -> bool:
-    """Check if working directory is clean. Returns True if clean or user approves."""
-    try:
-        r = run_cmd(["git", "status", "--porcelain"])
-        if r.stdout.strip():
-            log_warn("Working directory not clean:")
-            for line in r.stdout.strip().split("\n")[:10]:
-                print(f"  {line}")
-            return False
-        return True
-    except subprocess.CalledProcessError:
-        return True
+    def read_response(self, on_line=None) -> dict:
+        """Read until the assistant turn completes."""
+        result = read_until_complete(self.proc, on_line=on_line)
+        self.turn_count += 1
+        self.total_cost = result.get("cost_usd", 0) or self.total_cost
+        return result
+
+    def send_and_read(self, text: str, on_line=None) -> dict:
+        """Send a message and read the complete response."""
+        self.send(text)
+        return self.read_response(on_line=on_line)
+
+    def is_alive(self) -> bool:
+        return self.proc is not None and self.proc.poll() is None
+
+    def kill(self):
+        if self.proc:
+            self.proc.terminate()
+            try:
+                self.proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+            self.proc = None
+
+    def restart(self):
+        """Kill and start fresh."""
+        self.kill()
+        return self.start()
 
 # ============================================================
-# Stuck Detection
+# Session Start with Retry
 # ============================================================
 
-def detect_stuck_from_history(state: dict[str, Any], phase: int) -> str | None:
-    """
-    Analyze session_history in BUILD_STATE.json to detect stuck conditions.
-    Returns a description of the stuck condition, or None.
-    """
-    history = state.get("session_history", [])
-    if len(history) < STUCK_SAME_STEP_SESSIONS:
-        return None
-
-    # Check if the last N sessions were on the same phase+step
-    recent = history[-STUCK_SAME_STEP_SESSIONS:]
-    steps = set()
-    for entry in recent:
-        s = entry.get("step") or entry.get("current_step")
-        p = entry.get("phase") or entry.get("current_phase")
-        if p == phase and s is not None:
-            steps.add(s)
-    if len(steps) == 1:
-        step_val = steps.pop()
-        return (
-            f"Same step (Phase {phase}, Step {step_val}) across "
-            f"{STUCK_SAME_STEP_SESSIONS} consecutive sessions."
-        )
-
-    # Check blocking_issues count
-    blockers = state.get("blocking_issues", [])
-    if len(blockers) >= 3:
-        return f"{len(blockers)} unresolved blocking issues."
-
-    return None
-
-def detect_stuck_by_git(start_sha: str, session_start: datetime.datetime) -> str | None:
-    """
-    Check if Claude Code is stuck by monitoring git activity.
-    Called periodically during session monitoring.
-    Returns a description of stuck condition, or None.
-    """
-    elapsed = (datetime.datetime.now(datetime.timezone.utc) - session_start).total_seconds()
-    if elapsed < STUCK_NO_COMMIT_MINUTES * 60:
-        return None  # Too early to judge
-
-    last_commit_ts = get_last_commit_timestamp()
-    if last_commit_ts is None:
-        return None
-
-    # Make last_commit_ts offset-aware if it isn't
-    if last_commit_ts.tzinfo is None:
-        last_commit_ts = last_commit_ts.replace(tzinfo=datetime.timezone.utc)
-
-    since_last_commit = (datetime.datetime.now(datetime.timezone.utc) - last_commit_ts).total_seconds()
-    if since_last_commit > STUCK_NO_COMMIT_MINUTES * 60:
-        mins = int(since_last_commit // 60)
-        return f"No git commit in {mins} minutes (threshold: {STUCK_NO_COMMIT_MINUTES})."
-
-    return None
-
-def generate_guidance(stuck_reason: str, state: dict[str, Any]) -> None:
-    """Generate GUIDANCE.md with instructions for the next session to address stuck condition."""
-    phase = state.get("current_phase", "?")
-    step = state.get("current_step", "?")
-    blockers = state.get("blocking_issues", [])
-
-    blocker_text = ""
-    if blockers:
-        blocker_text = "\n## Current Blockers\n"
-        for b in blockers:
-            if isinstance(b, dict):
-                blocker_text += f"- {b.get('description', b)}\n"
-            else:
-                blocker_text += f"- {b}\n"
-
-    guidance = f"""# GUIDANCE — Auto-generated by autonomous-runner.py
-
-**Stuck condition detected:** {stuck_reason}
-
-## Context
-- Phase: {phase}
-- Step: {step}
-- Generated at: {datetime.datetime.now(datetime.timezone.utc).isoformat()}
-{blocker_text}
-## Instructions
-
-The autonomous runner detected that you may be stuck. Consider these approaches:
-
-1. **Re-read the current step** in the skill file carefully. You may be misinterpreting the requirements.
-2. **Try a simpler approach.** If the current implementation is too complex, simplify.
-3. **Skip this step** if subsequent steps don't depend on it. Commit what you have as [WIP] and advance.
-4. **Log a blocker** in BUILD_STATE.json if you truly cannot proceed, and stop the session.
-
-If you are NOT stuck and are making progress, ignore this file, delete it, and continue.
-"""
-    with open(GUIDANCE_FILE, "w") as f:
-        f.write(guidance)
-    log_warn(f"Generated GUIDANCE.md — stuck reason: {stuck_reason}")
-
-# ============================================================
-# Retry Logic
-# ============================================================
-
-def launch_with_retry(cmd: list[str], timeout: int, max_retries: int = 3) -> subprocess.CompletedProcess[str]:
-    """Launch a subprocess with exponential backoff retry."""
+def start_session_with_retry(session: AgentSession, max_retries: int = 3) -> dict:
     for attempt in range(max_retries):
         try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True,
-                cwd=REPO_ROOT, timeout=timeout,
-            )
-            return result
-        except subprocess.TimeoutExpired:
-            log_warn(f"Attempt {attempt + 1} timed out")
+            result = session.start()
+            if not result.get("process_died"):
+                return result
+            log_warn(f"{session.name} process died on start (attempt {attempt + 1})")
         except Exception as e:
-            log_warn(f"Attempt {attempt + 1} failed: {e}")
-
-        wait = 30 * (2 ** attempt)  # 30s, 60s, 120s
-        log_info(f"Waiting {wait}s before retry...")
+            log_warn(f"{session.name} start attempt {attempt + 1} failed: {e}")
+        wait = 30 * (2 ** attempt)
+        log_info(f"Retrying in {wait}s...")
         time.sleep(wait)
 
-    raise RuntimeError(f"Failed after {max_retries} attempts")
+    write_needs_human(f"Failed to start {session.name} session after {max_retries} attempts")
+    wait_for_human()
+    return start_session_with_retry(session, max_retries)
 
 # ============================================================
-# Supervisor Agent
+# BuildMonitor — real-time output analysis
 # ============================================================
 
-class SupervisorAgent:
-    """Persistent Claude Code supervisor session that diagnoses stuck conditions."""
+class BuildMonitor:
+    def __init__(self):
+        self.last_commit_time = time.time()
+        self.consecutive_errors = 0
+        self.output_tail: list[str] = []
+        self.pending_intervention: str | None = None
 
-    def __init__(self) -> None:
-        self.session_id: str | None = None
-        self.total_cost_usd: float = 0.0
-        self.call_count: int = 0
+    def process_line(self, line: str):
+        """Called for every build agent output line."""
+        if not line:
+            return
 
-    def init(self, reinit: bool = False) -> str:
-        """Initialize a fresh supervisor session. Returns the session_id."""
-        prompt = SUPERVISOR_INIT_PROMPT
-        if reinit:
-            prompt += SUPERVISOR_REINIT_SUFFIX
+        self.output_tail.append(line)
+        if len(self.output_tail) > 100:
+            self.output_tail.pop(0)
 
-        log_info("Initializing Supervisor Agent...")
-        result = launch_with_retry(
-            ["claude", "--print", prompt,
-             "--dangerously-skip-permissions", "--model", "claude-opus-4-6",
-             "--output-format", "json"],
-            timeout=CONFIG["supervisor_timeout_seconds"],
-        )
+        # Detect commits
+        if "git commit" in line or "git push" in line:
+            self.last_commit_time = time.time()
+            self.consecutive_errors = 0
 
-        try:
-            response = json.loads(result.stdout)
-            self.session_id = response.get("session_id")
-            cost = response.get("total_cost_usd", 0)
-            self.total_cost_usd += cost
-            log_ok(f"Supervisor initialized (session: {self.session_id}, cost: ${cost:.2f})")
-        except (json.JSONDecodeError, KeyError) as e:
-            log_warn(f"Could not parse supervisor init response: {e}")
-            # Try to extract session_id from output even if parse fails
-            # Fall back to generating a synthetic ID
-            self.session_id = f"supervisor-{uuid.uuid4().hex[:8]}"
-            log_warn(f"Using synthetic supervisor session ID: {self.session_id}")
+        # Detect errors — look for error-like patterns but avoid false positives
+        lower = line.lower()
+        if any(kw in lower for kw in ["error:", "fatal:", "exception:", "traceback"]):
+            self.consecutive_errors += 1
+        else:
+            self.consecutive_errors = 0
 
-        # Save to BUILD_STATE.json
-        state = load_build_state()
-        state["supervisor_session_id"] = self.session_id
-        save_build_state(state)
+        # Check for interventions
+        if self.consecutive_errors >= CONFIG["consecutive_errors_threshold"]:
+            self.pending_intervention = "errors"
+            self.consecutive_errors = 0
 
-        return self.session_id
+        if time.time() - self.last_commit_time > CONFIG["stuck_no_commit_seconds"]:
+            self.pending_intervention = "no_commits"
+            self.last_commit_time = time.time()  # Reset to avoid spamming
 
-    def is_session_valid(self) -> bool:
-        """Check if the current supervisor session ID exists and is usable."""
-        return self.session_id is not None
+    def get_tail(self, n: int = 100) -> str:
+        return "\n".join(self.output_tail[-n:])
 
-    def escalate(self, message: str) -> str:
-        """Send an escalation message to the supervisor. Returns response text."""
-        if not self.is_session_valid():
-            log_warn("No valid supervisor session. Re-initializing...")
-            self.init(reinit=True)
+    def reset_turn(self):
+        self.pending_intervention = None
 
-        # Check cost limit
-        if self.total_cost_usd > CONFIG["max_supervisor_cost_usd"]:
-            log_error(f"Supervisor cost limit reached: ${self.total_cost_usd:.2f}")
-            write_needs_human(f"Supervisor cost limit reached: ${self.total_cost_usd:.2f}")
-            return "COST_LIMIT_REACHED"
+# ============================================================
+# Course Correction Messages (mid-session injection)
+# ============================================================
 
-        log_info(f"Escalating to Supervisor (call #{self.call_count + 1})...")
-        try:
-            result = launch_with_retry(
-                ["claude", "--print", "--resume", self.session_id,
-                 message,
-                 "--dangerously-skip-permissions", "--model", "claude-opus-4-6",
-                 "--output-format", "json"],
-                timeout=CONFIG["supervisor_timeout_seconds"],
-            )
-
-            response_text = result.stdout
-            try:
-                response = json.loads(response_text)
-                cost = response.get("total_cost_usd", 0)
-                self.total_cost_usd += cost
-                self.call_count += 1
-                response_text = response.get("result", response_text)
-                log_info(f"Supervisor call cost: ${cost:.2f} (total: ${self.total_cost_usd:.2f})")
-            except (json.JSONDecodeError, KeyError):
-                # Response wasn't JSON — treat stdout as plain text response
-                self.call_count += 1
-                log_warn("Supervisor response was not JSON; using raw output")
-
-            return response_text
-
-        except RuntimeError:
-            # All retries failed — possibly session expired
-            log_warn("Supervisor session may have expired. Re-initializing...")
-            self.init(reinit=True)
-            # Retry once with the new session
-            try:
-                result = launch_with_retry(
-                    ["claude", "--print", "--resume", self.session_id,
-                     message,
-                     "--dangerously-skip-permissions", "--model", "claude-opus-4-6",
-                     "--output-format", "json"],
-                    timeout=CONFIG["supervisor_timeout_seconds"],
-                )
-                self.call_count += 1
-                try:
-                    response = json.loads(result.stdout)
-                    cost = response.get("total_cost_usd", 0)
-                    self.total_cost_usd += cost
-                    log_info(f"Supervisor call cost: ${cost:.2f} (total: ${self.total_cost_usd:.2f})")
-                    return response.get("result", result.stdout)
-                except (json.JSONDecodeError, KeyError):
-                    return result.stdout
-            except RuntimeError as e:
-                log_error(f"Supervisor escalation failed even after re-init: {e}")
-                return f"ESCALATION_FAILED: {e}"
+CORRECTIONS = {
+    "errors": (
+        "You've hit 3+ consecutive errors on the same operation. "
+        "Try a completely different approach. If that doesn't work after one attempt, "
+        "commit what you have as [WIP], log the blocker in BUILD_STATE.json blocking_issues, "
+        "and move to the next step."
+    ),
+    "no_commits": (
+        "You haven't committed anything in 15+ minutes. "
+        "Commit your current progress now even if incomplete. Use [WIP] prefix. "
+        "Partial progress committed > perfect progress lost."
+    ),
+}
 
 # ============================================================
 # Escalation Logic
 # ============================================================
 
-def count_commits_since_time(since_time: datetime.datetime) -> int:
-    """Count git commits since a given time."""
-    try:
-        iso = since_time.strftime("%Y-%m-%dT%H:%M:%S")
-        r = run_cmd(["git", "log", f"--since={iso}", "--oneline"])
-        lines = [l for l in r.stdout.strip().split("\n") if l.strip()]
-        return len(lines)
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-        return 0
-
-def get_recent_commits(n: int = 10) -> str:
-    """Get the last N commit messages."""
-    try:
-        r = run_cmd(["git", "log", f"-{n}", "--oneline"])
-        return r.stdout.strip()
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-        return ""
-
-def should_escalate(
-    session_result: SessionResult,
-    pre_session_state: dict[str, Any],
-    post_session_state: dict[str, Any],
-    sessions_on_same_step: int,
-) -> tuple[bool, str]:
-    """Returns (should_escalate, reason) based on strict criteria."""
-
-    # 1. Phase transition (proactive review)
-    pre_phase = pre_session_state.get("current_phase", 0)
-    post_phase = post_session_state.get("current_phase", 0)
-    if post_phase > pre_phase:
+def should_escalate(state_before: dict, state_after: dict, no_progress_turns: int) -> tuple[bool, str]:
+    # Phase transition
+    if state_after.get("current_phase", 0) > state_before.get("current_phase", 0):
         return True, "phase_transition"
 
-    # 2. Zero progress (0 commits this session)
-    if session_result.commits == 0:
-        return True, "zero_progress"
-
-    # 3. Repeated stuck (same step across 2+ sessions)
-    pre_step = pre_session_state.get("current_step")
-    post_step = post_session_state.get("current_step")
-    if (post_phase == pre_phase and post_step == pre_step and
-            sessions_on_same_step >= 2):
+    # Repeated stuck
+    if no_progress_turns >= CONFIG["max_no_progress_for_escalation"]:
         return True, "repeated_stuck"
 
-    # 4. Build broken
+    # Build broken
     try:
-        build_result = subprocess.run(
+        build = subprocess.run(
             ["pnpm", "build"], capture_output=True, text=True,
             cwd=REPO_ROOT, timeout=120,
         )
-        if build_result.returncode != 0:
+        if build.returncode != 0:
             return True, "build_broken"
     except (subprocess.TimeoutExpired, FileNotFoundError):
         log_warn("Could not run pnpm build for escalation check")
 
-    # 5. Multiple blockers (3+)
-    blockers = post_session_state.get("blocking_issues", [])
-    if len(blockers) >= 3:
+    # Multiple blockers
+    if len(state_after.get("blocking_issues", [])) >= 3:
         return True, "multiple_blockers"
 
     return False, "none"
 
-def build_escalation_message(reason: str, context: dict[str, Any]) -> str:
-    """Build a context message for the supervisor."""
+
+def build_escalation_message(reason: str, context: dict) -> str:
     parts = [f"ESCALATION: {reason}\n"]
 
-    parts.append(f"Current position: Phase {context['phase']}, Step {context['step']}")
-    parts.append(f"Sessions on this step: {context['sessions_on_step']}")
+    parts.append(f"Phase {context.get('phase')}, Step {context.get('step')}")
+    parts.append(f"Consecutive turns with no progress: {context.get('no_progress_turns', 0)}")
 
-    if context.get("build_output_tail"):
-        parts.append(f"\nLast 100 lines of Build Agent output:\n```\n{context['build_output_tail']}\n```")
-
-    if context.get("build_error"):
-        parts.append(f"\nBuild error:\n```\n{context['build_error']}\n```")
+    if context.get("output_tail"):
+        parts.append(f"\nLast 100 lines of Build Agent output:\n```\n{context['output_tail']}\n```")
 
     if context.get("blocking_issues"):
-        parts.append(f"\nBlocking issues in BUILD_STATE.json:\n{json.dumps(context['blocking_issues'], indent=2)}")
-
-    if context.get("recent_commits"):
-        parts.append(f"\nRecent commits:\n```\n{context['recent_commits']}\n```")
+        parts.append(f"\nBlocking issues:\n{json.dumps(context['blocking_issues'], indent=2)}")
 
     if reason == "phase_transition":
-        parts.append(f"\nPhase {context['phase']} is complete. Please review readiness for Phase {context['phase'] + 1}.")
-        parts.append("Read the test report and next phase skill file, then assess.")
+        phase = context.get("phase", 0)
+        parts.append(f"\nPhase {phase} complete. Review readiness for Phase {phase + 1}.")
+        parts.append("Read test report and next skill file. Assess readiness and flag risks.")
+    elif reason == "build_broken":
+        parts.append(f"\nBuild error output:\n```\n{context.get('build_error', 'unknown')}\n```")
 
-    parts.append("\nFollow your escalation framework: DIAGNOSE → ROOT CAUSE → ALTERNATIVES → DECISION → ACTION")
-    parts.append("Write GUIDANCE.md (or NEEDS_HUMAN.md if beyond your scope), commit, and push.")
+    parts.append("\nFollow your framework: DIAGNOSE -> ROOT CAUSE -> ALTERNATIVES -> DECISION -> ACTION")
+    parts.append("Write GUIDANCE.md (or NEEDS_HUMAN.md if beyond scope), commit, push.")
 
     return "\n\n".join(parts)
 
-def gather_escalation_context(
-    reason: str,
-    session_result: SessionResult,
-    state: dict[str, Any],
-    sessions_on_same_step: int,
-) -> dict[str, Any]:
-    """Gather context for an escalation message."""
-    context: dict[str, Any] = {
-        "phase": state.get("current_phase", 0),
-        "step": state.get("current_step", 0),
-        "sessions_on_step": sessions_on_same_step,
-        "recent_commits": get_recent_commits(10),
-    }
+# ============================================================
+# Escalation Flow
+# ============================================================
 
-    # Last 100 lines of build output
-    if session_result.output:
-        lines = session_result.output.strip().split("\n")
-        context["build_output_tail"] = "\n".join(lines[-100:])
+def escalate_to_supervisor(
+    build_session: AgentSession,
+    supervisor_session: AgentSession,
+    context: dict,
+) -> str:
+    message = build_escalation_message(context["reason"], context)
 
-    # Build error (if build broken)
-    if reason == "build_broken":
-        try:
-            r = subprocess.run(
-                ["pnpm", "build"], capture_output=True, text=True,
-                cwd=REPO_ROOT, timeout=120,
-            )
-            context["build_error"] = r.stderr or r.stdout
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            context["build_error"] = "Could not capture build error"
+    # Ensure supervisor is alive
+    if not supervisor_session.is_alive():
+        log_info("Supervisor session died. Restarting...")
+        start_session_with_retry(supervisor_session)
 
-    # Blocking issues
-    blockers = state.get("blocking_issues", [])
-    if blockers:
-        context["blocking_issues"] = blockers
+    log_info("[SUPERVISOR] Sending escalation...")
 
-    return context
+    # Tell supervisor to git pull first
+    full_message = f"First run: git pull origin main\n\nThen handle this:\n\n{message}"
+    result = supervisor_session.send_and_read(full_message, on_line=log_supervisor_line)
+
+    log_info(f"[SUPERVISOR] Done. Cost: ${result.get('cost_usd', 0):.2f}")
+
+    # Runner pulls to get GUIDANCE.md or NEEDS_HUMAN.md
+    git_pull()
+
+    if NEEDS_HUMAN_FILE.exists():
+        return "needs_human"
+
+    # Tell build agent to read guidance
+    if build_session.is_alive() and GUIDANCE_FILE.exists():
+        build_session.send(
+            "Run git pull origin main. Read GUIDANCE.md and follow its instructions. "
+            "Delete GUIDANCE.md when done, commit the deletion, then continue building."
+        )
+
+    return "guidance_sent"
 
 # ============================================================
 # NEEDS_HUMAN Handling
 # ============================================================
 
-def write_needs_human(reason: str) -> None:
-    """Write a NEEDS_HUMAN.md file."""
-    content = f"""# NEEDS_HUMAN — Autonomous Runner
+def write_needs_human(reason: str):
+    content = (
+        f"# Human Intervention Needed\n\n"
+        f"**Generated at:** {datetime.now(timezone.utc).isoformat()}\n"
+        f"**Reason:** {reason}\n\n"
+        f"Delete this file and push to resume.\n"
+    )
+    NEEDS_HUMAN_FILE.write_text(content)
+    subprocess.run(["git", "add", "NEEDS_HUMAN.md"], cwd=REPO_ROOT, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "PAUSED: needs human intervention"],
+        cwd=REPO_ROOT, capture_output=True,
+    )
+    subprocess.run(["git", "push", "origin", "main"], cwd=REPO_ROOT, capture_output=True)
 
-**Generated at:** {datetime.datetime.now(datetime.timezone.utc).isoformat()}
-**Reason:** {reason}
 
-The autonomous runner has paused because it encountered an issue that requires human intervention.
-
-Please resolve the issue, delete this file, and commit and push.
-"""
-    with open(NEEDS_HUMAN_FILE, "w") as f:
-        f.write(content)
-    log_warn(f"Wrote NEEDS_HUMAN.md: {reason}")
-
-def wait_for_human() -> None:
-    """Pause and poll until human resolves the issue."""
-    poll_interval = CONFIG["needs_human_poll_interval_seconds"]
-    log_info("NEEDS_HUMAN.md detected. Pausing for human intervention.")
-    log_info(f"The runner will check every {poll_interval // 60} minutes for the file to be removed.")
-    log_info("Human: read NEEDS_HUMAN.md, resolve the issue, delete the file, commit and push.")
+def wait_for_human():
+    log_info("=" * 50)
+    log_info(" PAUSED — HUMAN INTERVENTION NEEDED")
+    log_info(" Read NEEDS_HUMAN.md for details")
+    log_info(" Delete the file, commit, and push to resume")
+    log_info("=" * 50)
 
     while True:
-        time.sleep(poll_interval)
-        try:
-            subprocess.run(
-                ["git", "pull", "origin", "main"],
-                cwd=REPO_ROOT, capture_output=True, timeout=30,
-            )
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-            pass
+        time.sleep(CONFIG["needs_human_poll_seconds"])
+        git_pull()
         if not NEEDS_HUMAN_FILE.exists():
             log_info("NEEDS_HUMAN.md removed. Resuming build.")
             return
-        log_info("Still waiting for human... (NEEDS_HUMAN.md still exists)")
+        log_info(f"Waiting for human... ({datetime.now().strftime('%H:%M')})")
 
 # ============================================================
-# Supervisor Initialization Helper
+# Agent Prompts
 # ============================================================
 
-def init_or_resume_supervisor() -> SupervisorAgent:
-    """Initialize a new supervisor or resume from BUILD_STATE.json."""
-    supervisor = SupervisorAgent()
-    state = load_build_state()
-    existing_id = state.get("supervisor_session_id")
+BUILD_INIT_PROMPT = """You are the Build Agent for M&A Deal OS. Your job is to build the system phase by phase following the skill files.
 
-    if existing_id:
-        log_info(f"Found existing supervisor session: {existing_id}")
-        supervisor.session_id = existing_id
-        # Verify it works by not calling it — we'll find out on first escalation
-    else:
-        supervisor.init()
+PROTOCOL:
+1. Run `git pull origin main` first
+2. Read BUILD_STATE.json for current phase and step
+3. If GUIDANCE.md exists, read it, follow its instructions, then delete it and commit
+4. Read the current skill file (skills/current-phase.md)
+5. Execute each step following the build-test-commit loop:
+   - Build the step
+   - Run the specified tests
+   - If tests pass: git add, commit with "[Phase X.Y] Description — tests: N/M passing", push
+   - If tests fail: retry up to 3 times, then commit as [WIP], log blocker in BUILD_STATE.json
+   - Update BUILD_STATE.json current_step after each commit
+6. After each step, continue to the next step immediately
+7. When a phase is complete:
+   - Write test report to docs/test-results/phaseN_test_report.md
+   - Update BUILD_STATE.json: increment current_phase, set current_step to 1, add phase to completed_phases
+   - Update symlink: cd skills && ln -sf phase-{NN}.md current-phase.md && cd ..
+   - Continue to the next phase
+8. Never break existing functionality (Phases 0-2)
+9. Commit after EVERY step. Small commits, frequent pushes.
 
-    return supervisor
+Start now."""
 
-# ============================================================
-# Session Execution
-# ============================================================
+BUILD_CONTINUE_PROMPT = (
+    "Run git pull origin main. Check for GUIDANCE.md — if it exists, read and follow it, "
+    "delete it, commit. Then continue building from where you left off."
+)
 
-def build_claude_prompt(phase: int, state: dict[str, Any], session_id: str, resume_id: str | None) -> str:
-    """Build the prompt to pass to claude --print."""
-    skill_file = f"skills/phase-{phase:02d}.md"
-    parts = [
-        "Start session.",
-        f"Session ID: {session_id}.",
-        "Read BUILD_STATE.json.",
-        "Check for GUIDANCE.md — if it exists, read it, follow instructions, then delete it and commit.",
-        f"Read {skill_file} and resume building from the current step.",
-        "Follow the build-test-commit loop in CLAUDE.md.",
-    ]
-    if resume_id:
-        parts.insert(1, f"This is a resumed session (previous: {resume_id}).")
-    return " ".join(parts)
+SUPERVISOR_INIT_PROMPT = """You are the Supervisor Agent for the M&A Deal OS autonomous build.
 
-def run_session(
-    phase: int,
-    state: dict[str, Any],
-    session_id: str,
-    resume_id: str | None,
-    auto_launch: bool,
-) -> SessionResult:
-    """Launch a Claude Code session and monitor it."""
-    start_time = datetime.datetime.now(datetime.timezone.utc)
-    start_sha = get_git_head_sha()
-    step_before = state.get("current_step")
+YOUR ROLE: You oversee a Build Agent (a separate Claude Code session) that follows skill files to build the system phase by phase. You are consulted when the Build Agent gets stuck, and at phase transitions for readiness review.
 
-    prompt = build_claude_prompt(phase, state, session_id, resume_id)
+READ THESE FILES NOW to understand the project:
+- CLAUDE.md (build protocol)
+- BUILD_STATE.json (current state)
+- SPEC.md (full specification — read thoroughly, this is your only chance to read it in full)
+- The current skill file referenced in BUILD_STATE.json
 
-    log_info(f"Session {session_id}")
-    log_info(f"Phase {phase}, starting from step {step_before}")
+WHEN I BRING YOU AN ESCALATION, follow this framework:
 
-    if not auto_launch:
-        print()
-        print(f"{C.BOLD}============================================{C.NC}")
-        print(f"{C.BOLD}  M&A DEAL OS — AUTONOMOUS BUILD{C.NC}")
-        print(f"{C.BOLD}============================================{C.NC}")
-        print()
-        print(f"  Phase:        {phase}")
-        print(f"  Skill file:   skills/phase-{phase:02d}.md")
-        print(f"  Current step: {step_before}")
-        print(f"  Session ID:   {session_id}")
-        if resume_id:
-            print(f"  Resuming:     {resume_id}")
-        print()
+1. DIAGNOSE: What exactly failed? Quote the error if provided.
+2. ROOT CAUSE: Why? (environment constraint, logic error, dependency missing, spec ambiguity, wrong approach)
+3. ALTERNATIVES: List 2-3 approaches with tradeoffs and likelihood of success.
+4. DECISION: Which alternative and why. Principles:
+   - Progress over perfection: a working stub beats a stuck session
+   - Test everything: never skip tests to save time
+   - Small commits: partial progress > perfect progress lost
+   - Work around environment constraints, don't fight them
+   - Never break existing functionality (Phases 0-2)
+5. ACTION: Write GUIDANCE.md at repo root with EXACT instructions for the Build Agent (file paths, code patterns, commands). Then git add, commit, and push.
 
-        if GUIDANCE_FILE.exists():
-            log_info("GUIDANCE.md found:")
-            print("---")
-            print(GUIDANCE_FILE.read_text())
-            print("---")
-            print()
+After each decision, append a summary to docs/supervisor-log/decisions.md:
 
-        print("Launch command:")
-        print()
-        print(f'  claude --print "{prompt}"')
-        print()
-        resp = input("Launch now? (Y/n) ").strip().lower()
-        if resp and resp != "y":
-            return SessionResult(
-                session_id=session_id,
-                phase=phase,
-                step_before=step_before,
-                step_after=step_before,
-                status="cancelled",
-                commits=0,
-                duration_seconds=0,
-                estimated_cost_usd=0,
-                started_at=start_time.isoformat(),
-                finished_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            )
+## [YYYY-MM-DD HH:MM] Phase X Step Y — Issue Type
+**Diagnosis:** ...
+**Alternatives:** ...
+**Decision:** ...
+**Reasoning:** ...
 
-    # Launch Claude Code
-    log_info("Launching Claude Code...")
-    try:
-        proc = subprocess.Popen(
-            ["claude", "--print", prompt, "--dangerously-skip-permissions", "--model", "claude-opus-4-6"],
-            cwd=REPO_ROOT,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-    except FileNotFoundError:
-        log_error("claude CLI not found")
-        return SessionResult(
-            session_id=session_id,
-            phase=phase,
-            step_before=step_before,
-            step_after=step_before,
-            status="error",
-            commits=0,
-            duration_seconds=0,
-            estimated_cost_usd=0,
-            error="claude CLI not found",
-            started_at=start_time.isoformat(),
-            finished_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        )
+FOR PHASE TRANSITIONS: Read the test report and next skill file. Confirm readiness or flag risks.
 
-    # Monitor the session — stream stdout in real-time, collect for analysis, write to build_log.txt
-    stuck_reason = None
-    last_poll = time.time()
-    collected_output: list[str] = []
-    build_log_path = REPO_ROOT / "build_log.txt"
+IF BEYOND YOUR SCOPE (spec changes needed, same step 2+ times, credentials issues):
+Write NEEDS_HUMAN.md instead. Include what happened, what you considered, specific questions for the human.
 
-    try:
-        with open(build_log_path, "a") as build_log:
-            build_log.write(f"\n{'=' * 60}\n")
-            build_log.write(f"Session {session_id} — Phase {phase} — {start_time.isoformat()}\n")
-            build_log.write(f"{'=' * 60}\n")
-            build_log.flush()
-
-            while proc.poll() is None:
-                # Stream output line by line
-                if proc.stdout:
-                    line = proc.stdout.readline()
-                    if line:
-                        # Print to terminal in real-time
-                        sys.stdout.write(line)
-                        sys.stdout.flush()
-                        # Collect for post-session analysis
-                        collected_output.append(line)
-                        # Write to build_log.txt in real-time
-                        build_log.write(line)
-                        build_log.flush()
-
-                # Periodic stuck check
-                now = time.time()
-                if now - last_poll >= STUCK_POLL_INTERVAL_SECONDS:
-                    last_poll = now
-                    if start_sha:
-                        stuck_reason = detect_stuck_by_git(start_sha, start_time)
-                        if stuck_reason:
-                            log_warn(f"Stuck detected: {stuck_reason}")
-                            # Don't kill — just note it. Claude may recover.
-                            # We'll generate guidance after the session ends.
-
-            # Drain remaining output after process exits
-            if proc.stdout:
-                for line in proc.stdout:
-                    sys.stdout.write(line)
-                    sys.stdout.flush()
-                    collected_output.append(line)
-                    build_log.write(line)
-                    build_log.flush()
-
-    except KeyboardInterrupt:
-        log_warn("Interrupted by user. Waiting for Claude to finish...")
-        proc.terminate()
-        try:
-            proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-
-    end_time = datetime.datetime.now(datetime.timezone.utc)
-    duration = (end_time - start_time).total_seconds()
-    exit_code = proc.returncode or 0
-    full_output = "".join(collected_output)
-
-    # Count commits made during session
-    commits = 0
-    if start_sha:
-        commits = get_git_commit_count_since(start_sha)
-
-    # Reload BUILD_STATE to see where we ended up
-    state_after = load_build_state()
-    step_after = state_after.get("current_step")
-    phase_after = state_after.get("current_phase", phase)
-
-    # Determine session status
-    if exit_code != 0:
-        status = "error"
-    elif phase_after > phase:
-        status = "completed"  # Phase completed, moved to next
-    elif step_after and step_before and step_after > step_before:
-        status = "advanced"
-    elif stuck_reason:
-        status = "stuck"
-    elif commits == 0:
-        status = "timeout"
-    else:
-        status = "advanced"
-
-    # Cost estimation
-    cost = (duration / 60.0) * ESTIMATED_COST_PER_MINUTE_USD
-
-    result = SessionResult(
-        session_id=session_id,
-        phase=phase,
-        step_before=step_before,
-        step_after=step_after,
-        status=status,
-        commits=commits,
-        duration_seconds=round(duration, 1),
-        estimated_cost_usd=round(cost, 2),
-        blockers=state_after.get("blocking_issues", []),
-        guidance_generated=False,
-        error=f"exit code {exit_code}" if exit_code != 0 else None,
-        started_at=start_time.isoformat(),
-        finished_at=end_time.isoformat(),
-        output=full_output,
-    )
-
-    # If stuck, generate guidance for the next session
-    if status == "stuck" and stuck_reason:
-        generate_guidance(stuck_reason, state_after)
-        result.guidance_generated = True
-
-    # Also check historical stuck from session history
-    historical_stuck = detect_stuck_from_history(state_after, phase_after)
-    if historical_stuck and not result.guidance_generated:
-        generate_guidance(historical_stuck, state_after)
-        result.guidance_generated = True
-        if result.status != "stuck":
-            result.status = "stuck"
-
-    return result
+Respond with SUPERVISOR READY after reading all files."""
 
 # ============================================================
-# Session History Management
+# Pre-flight Checks
 # ============================================================
 
-def record_session(state: dict[str, Any], result: SessionResult) -> dict[str, Any]:
-    """Record session result in BUILD_STATE.json session_history."""
-    entry = {
-        "session_id": result.session_id,
-        "phase": result.phase,
-        "step": result.step_after,
-        "current_phase": result.phase,
-        "current_step": result.step_after,
-        "status": result.status,
-        "commits": result.commits,
-        "duration_seconds": result.duration_seconds,
-        "estimated_cost_usd": result.estimated_cost_usd,
-        "started_at": result.started_at,
-        "finished_at": result.finished_at,
-    }
-    if result.error:
-        entry["error"] = result.error
-
-    history = state.get("session_history", [])
-    history.append(entry)
-    state["session_history"] = history
-
-    return state
-
-def save_session_log(result: SessionResult) -> Path:
-    """Save session result as a standalone JSON file."""
-    SESSION_LOG_DIR.mkdir(parents=True, exist_ok=True)
-    log_file = SESSION_LOG_DIR / f"session-{result.session_id}.json"
-    with open(log_file, "w") as f:
-        json.dump(result.to_dict(), f, indent=2)
-        f.write("\n")
-    return log_file
-
-# ============================================================
-# Multi-Session Orchestration
-# ============================================================
-
-def run_multi_session(
-    phase: int | None,
-    max_sessions: int,
-    auto_launch: bool,
-    resume_id: str | None,
-    output_format: str,
-) -> list[SessionResult]:
-    """Run one or more consecutive sessions with supervisor escalation."""
-    results: list[SessionResult] = []
-
-    # Initialize supervisor
-    supervisor = init_or_resume_supervisor()
-    sessions_on_same_step = 0
-    supervisor_calls_this_build = 0
-
-    for i in range(max_sessions):
-        # Pre-session: pull latest
-        try:
-            run_cmd(["git", "pull", "origin", "main"], check=False)
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-            pass
-
-        state = load_build_state()
-
-        # Check for NEEDS_HUMAN.md
-        if NEEDS_HUMAN_FILE.exists():
-            wait_for_human()
-            state = load_build_state()
-
-        # Check for build completion
-        current_phase_num = phase if phase is not None else state.get("current_phase", 3)
-        if current_phase_num > 14 or (REPO_ROOT / "BUILD_COMPLETE").exists():
-            log_ok("BUILD COMPLETE!")
-            break
-
-        # Determine phase
-        current_phase = current_phase_num
-        skill_path = skill_file_for_phase(current_phase)
-        if not skill_path.exists():
-            log_error(f"Skill file not found: {skill_path}")
-            available = sorted(SKILLS_DIR.glob("phase-*.md"))
-            if available:
-                log_error(f"Available: {', '.join(p.name for p in available)}")
-            break
-
-        # Update symlink before session
-        update_symlink(current_phase)
-
-        # Generate session ID
-        session_id = f"s-{current_phase:02d}-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
-
-        if i > 0:
-            log_info(f"Starting session {i + 1}/{max_sessions}")
-
-        # Capture pre-session state
-        state_before = load_build_state()
-
-        result = run_session(
-            phase=current_phase,
-            state=state_before,
-            session_id=session_id,
-            resume_id=resume_id if i == 0 else results[-1].session_id,
-            auto_launch=auto_launch if i == 0 else True,  # Auto-launch subsequent sessions
-        )
-
-        # Post-session: pull latest
-        try:
-            run_cmd(["git", "pull", "origin", "main"], check=False)
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-            pass
-
-        # Record in BUILD_STATE
-        state_after = load_build_state()  # Reload — Claude may have modified it
-        state_after = record_session(state_after, result)
-        save_build_state(state_after)
-
-        # Save session log
-        log_path = save_session_log(result)
-        log_info(f"Session log: {log_path.relative_to(REPO_ROOT)}")
-
-        results.append(result)
-
-        # Print session summary
-        if output_format == "text":
-            print()
-            print(f"{C.BOLD}--- Session Result ---{C.NC}")
-            print(f"  ID:         {result.session_id}")
-            print(f"  Status:     {result.status}")
-            print(f"  Phase:      {result.phase}")
-            print(f"  Steps:      {result.step_before} -> {result.step_after}")
-            print(f"  Commits:    {result.commits}")
-            print(f"  Duration:   {result.duration_seconds:.0f}s")
-            print(f"  Est. cost:  ${result.estimated_cost_usd:.2f}")
-            if result.guidance_generated:
-                print(f"  {C.YELLOW}GUIDANCE.md generated{C.NC}")
-            if result.error:
-                print(f"  Error:      {result.error}")
-            print()
-
-        # Track same-step count
-        if (state_after.get("current_phase") == state_before.get("current_phase") and
-                state_after.get("current_step") == state_before.get("current_step")):
-            sessions_on_same_step += 1
-        else:
-            sessions_on_same_step = 0
-
-        # Update symlink after session (phase may have changed)
-        new_phase = state_after.get("current_phase", current_phase)
-        if new_phase != current_phase:
-            update_symlink(new_phase)
-            log_ok(f"Phase advanced: {current_phase} -> {new_phase}")
-
-        # Should we escalate to the supervisor?
-        escalate, reason = should_escalate(
-            result, state_before, state_after, sessions_on_same_step,
-        )
-
-        if escalate and supervisor_calls_this_build < CONFIG["max_supervisor_calls_per_build_session"]:
-            log_info(f"Escalating to Supervisor: {reason}")
-            context = gather_escalation_context(reason, result, state_after, sessions_on_same_step)
-            message = build_escalation_message(reason, context)
-            supervisor.escalate(message)
-            supervisor_calls_this_build += 1
-
-            # Pull after supervisor (it may have committed GUIDANCE.md or NEEDS_HUMAN.md)
-            try:
-                run_cmd(["git", "pull", "origin", "main"], check=False)
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-                pass
-
-            # Check if supervisor wrote NEEDS_HUMAN.md
-            if NEEDS_HUMAN_FILE.exists():
-                wait_for_human()
-
-            # After escalation, continue to next build session (don't stop)
-            time.sleep(30)
-            continue
-        elif escalate:
-            log_warn(f"Would escalate ({reason}) but supervisor call limit reached ({supervisor_calls_this_build})")
-
-        # Stop conditions (only when NOT escalating)
-        if result.status == "cancelled":
-            break
-        if result.status == "error" and not escalate:
-            log_error("Session ended with error. Stopping.")
-            break
-        if result.status == "stuck" and not escalate:
-            log_warn("Session detected stuck condition. Stopping for human review.")
-            break
-        if result.status == "completed":
-            # Phase completed — check if there's a next phase
-            if new_phase > current_phase:
-                log_ok(f"Phase {current_phase} completed! Moving to phase {new_phase}.")
-                phase = None  # Let it auto-detect next phase
-            else:
-                log_ok("Phase completed.")
-                break
-
-        # Brief pause between sessions
-        time.sleep(30)
-
-    return results
-
-# ============================================================
-# Pre-flight
-# ============================================================
-
-def preflight(skip_api_checks: bool = False) -> dict[str, str]:
-    """Run all pre-flight checks. Returns loaded env vars."""
+def run_preflight_checks(skip_api: bool = False) -> dict[str, str]:
     log_info("Running pre-flight checks...")
 
-    # Load and validate env
+    # Load env
     env_vars = load_env_file()
-    missing = validate_env_vars(env_vars)
+    missing = [v for v in REQUIRED_ENV_VARS if not env_vars.get(v) and not os.environ.get(v)]
     if missing:
-        log_error(f"Missing required environment variables: {', '.join(missing)}")
+        log_error(f"Missing env vars: {', '.join(missing)}")
         sys.exit(1)
     log_ok("Environment variables present")
 
-    # Tool checks
-    if not validate_tools():
-        sys.exit(1)
-
-    # Git clean check (non-blocking)
-    if not check_git_clean():
-        log_warn("Working directory not clean (continuing)")
-
-    if not skip_api_checks:
-        # Supabase connectivity
-        if not check_supabase_connectivity(env_vars):
+    # Tools
+    for tool in ["pnpm", "node", "claude", "git"]:
+        if not shutil.which(tool):
+            log_error(f"{tool} not found in PATH")
             sys.exit(1)
+    log_ok("Required tools available")
 
-        # Anthropic API key
-        check_anthropic_key(env_vars)
+    # Node version
+    try:
+        r = subprocess.run(["node", "-v"], capture_output=True, text=True, timeout=10)
+        version = r.stdout.strip().lstrip("v")
+        major = int(version.split(".")[0])
+        if major < 18:
+            log_error(f"Node.js {major} found, need 18+")
+            sys.exit(1)
+        log_ok(f"Node.js v{version}")
+    except Exception:
+        log_warn("Could not check Node.js version")
+
+    if not skip_api:
+        # Supabase connectivity
+        url = env_vars.get("NEXT_PUBLIC_SUPABASE_URL", os.environ.get("NEXT_PUBLIC_SUPABASE_URL", ""))
+        key = env_vars.get("SUPABASE_SERVICE_ROLE_KEY", os.environ.get("SUPABASE_SERVICE_ROLE_KEY", ""))
+        if url and key:
+            try:
+                r = subprocess.run(
+                    ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
+                     f"{url}/rest/v1/deals?select=count&limit=0",
+                     "-H", f"apikey: {key}",
+                     "-H", f"Authorization: Bearer {key}"],
+                    capture_output=True, text=True, timeout=15,
+                )
+                if r.stdout.strip() in ("200", "206"):
+                    log_ok("Supabase connection verified")
+                else:
+                    log_error(f"Supabase connection failed (HTTP {r.stdout.strip()})")
+                    sys.exit(1)
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                log_error("Supabase connection timed out")
+                sys.exit(1)
 
     # Install deps if needed
-    node_modules = REPO_ROOT / "node_modules"
-    if not node_modules.exists():
+    if not (REPO_ROOT / "node_modules").exists():
         log_info("Installing dependencies...")
-        run_cmd(["pnpm", "install"], timeout=300)
+        subprocess.run(["pnpm", "install"], cwd=REPO_ROOT, timeout=300)
 
     return env_vars
 
 # ============================================================
-# Main
+# CLI Parser
 # ============================================================
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Autonomous runner for M&A Deal OS — launches and monitors Claude Code sessions",
-    )
-    parser.add_argument(
-        "--phase", "-p",
-        type=int,
-        default=None,
-        help="Override phase number (default: read from BUILD_STATE.json)",
-    )
-    parser.add_argument(
-        "--resume",
-        type=str,
-        default=None,
-        metavar="SESSION_ID",
-        help="Resume from a previous session ID",
-    )
-    parser.add_argument(
-        "--auto-launch",
-        action="store_true",
-        default=False,
-        help="Skip confirmation prompt, launch immediately",
-    )
-    parser.add_argument(
-        "--max-sessions",
-        type=int,
-        default=1,
-        help="Maximum number of consecutive sessions to run (default: 1)",
-    )
-    parser.add_argument(
-        "--output-format",
-        choices=["text", "json"],
-        default="text",
-        help="Output format for session results (default: text)",
-    )
-    parser.add_argument(
-        "--skip-api-checks",
-        action="store_true",
-        default=False,
-        help="Skip Supabase and Anthropic API pre-flight checks",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        default=False,
-        help="Run pre-flight checks only, don't launch Claude Code",
-    )
+    parser = argparse.ArgumentParser(description="M&A Deal OS — Autonomous Builder V2")
+    parser.add_argument("--max-turns", type=int, default=CONFIG["max_turns"])
+    parser.add_argument("--dry-run", action="store_true", help="Pre-flight checks only")
+    parser.add_argument("--model", type=str, default=CONFIG["claude_model"])
+    parser.add_argument("--max-cost", type=float, default=200.0)
+    parser.add_argument("--no-supervisor", action="store_true")
+    parser.add_argument("--skip-api-checks", action="store_true")
     return parser.parse_args()
 
-def main() -> None:
+# ============================================================
+# Main Loop
+# ============================================================
+
+def main():
     args = parse_args()
+    CONFIG["claude_model"] = args.model
 
-    # If resuming, look up the previous session to find its phase
-    resume_phase = None
-    if args.resume:
-        log_info(f"Resuming from session: {args.resume}")
-        # Try to find session in BUILD_STATE history
-        state = load_build_state()
-        for entry in state.get("session_history", []):
-            if entry.get("session_id") == args.resume:
-                resume_phase = entry.get("phase")
-                log_info(f"Found previous session — phase {resume_phase}")
-                break
-        if resume_phase is None:
-            log_warn(f"Session {args.resume} not found in history. Using current phase.")
-
-    phase = args.phase or resume_phase
-
-    # Pre-flight
-    preflight(skip_api_checks=args.skip_api_checks)
+    run_preflight_checks(skip_api=args.skip_api_checks)
 
     if args.dry_run:
         log_ok("Pre-flight checks passed. Dry run — not launching.")
         state = load_build_state()
-        effective_phase = phase or state.get("current_phase", 3)
-        update_symlink(effective_phase)
-        # Verify supervisor can be initialized
-        log_info("Verifying supervisor initialization...")
-        try:
-            supervisor = SupervisorAgent()
-            supervisor.init()
-            log_ok(f"Supervisor initialized successfully (session: {supervisor.session_id})")
-        except Exception as e:
-            log_warn(f"Supervisor initialization failed: {e}")
-            log_warn("The supervisor will be retried at build time.")
+        log_info(f"Would start at Phase {state.get('current_phase')}, Step {state.get('current_step')}")
         return
 
-    # Run session(s)
-    results = run_multi_session(
-        phase=phase,
-        max_sessions=args.max_sessions,
-        auto_launch=args.auto_launch,
-        resume_id=args.resume,
-        output_format=args.output_format,
-    )
+    # Initialize
+    git_pull()
+    state = load_build_state()
+    update_symlink(state.get("current_phase", 3))
 
-    # Output results
-    if args.output_format == "json":
-        output = {
-            "sessions": [r.to_dict() for r in results],
-            "total_sessions": len(results),
-            "total_commits": sum(r.commits for r in results),
-            "total_duration_seconds": round(sum(r.duration_seconds for r in results), 1),
-            "total_estimated_cost_usd": round(sum(r.estimated_cost_usd for r in results), 2),
-            "final_status": results[-1].status if results else "none",
-        }
-        print(json.dumps(output, indent=2))
-    elif results:
-        total_cost = sum(r.estimated_cost_usd for r in results)
-        total_commits = sum(r.commits for r in results)
-        print()
-        print(f"{C.BOLD}=== Run Summary ==={C.NC}")
-        print(f"  Sessions:    {len(results)}")
-        print(f"  Commits:     {total_commits}")
-        print(f"  Total cost:  ${total_cost:.2f}")
-        print(f"  Last status: {results[-1].status}")
-        if results[-1].session_id:
-            print(f"  Resume with: python scripts/autonomous-runner.py --resume {results[-1].session_id}")
-        print()
+    log_info("=" * 50)
+    log_info("  M&A DEAL OS — AUTONOMOUS BUILD V2")
+    log_info(f"  Starting Phase {state.get('current_phase')}, Step {state.get('current_step')}")
+    log_info(f"  Model: {args.model}")
+    log_info(f"  Max turns: {args.max_turns}")
+    log_info(f"  Max cost: ${args.max_cost:.2f}")
+    log_info(f"  Supervisor: {'disabled' if args.no_supervisor else 'enabled'}")
+    log_info("=" * 50)
+
+    # Start Build Agent
+    log_info("Starting Build Agent...")
+    build = AgentSession("build", BUILD_INIT_PROMPT, model=args.model)
+    init_result = start_session_with_retry(build)
+    log_ok(f"Build Agent ready. Session: {build.session_id}")
+
+    # Start Supervisor (unless disabled)
+    supervisor: AgentSession | None = None
+    if not args.no_supervisor:
+        log_info("Starting Supervisor...")
+        supervisor = AgentSession("supervisor", SUPERVISOR_INIT_PROMPT, model=args.model)
+        sup_result = start_session_with_retry(supervisor)
+        log_ok(f"Supervisor ready. Session: {supervisor.session_id}")
+
+    # Tracking
+    monitor = BuildMonitor()
+    no_progress_turns = 0
+    supervisor_calls_this_step = 0
+
+    for turn in range(args.max_turns):
+        if shutdown_requested:
+            log_info("Shutdown requested. Cleaning up.")
+            break
+
+        # Check completion
+        state = load_build_state()
+        if state.get("current_phase", 0) > 14 or (REPO_ROOT / "BUILD_COMPLETE").exists():
+            log_info("*  *  *  BUILD COMPLETE  *  *  *")
+            break
+
+        # Check NEEDS_HUMAN
+        if NEEDS_HUMAN_FILE.exists():
+            wait_for_human()
+
+        # Check cost limits
+        total_cost = build.total_cost + (supervisor.total_cost if supervisor else 0)
+        if total_cost > args.max_cost:
+            write_needs_human(f"Cost limit reached: ${total_cost:.2f}")
+            wait_for_human()
+
+        # Pre-turn
+        git_pull()
+        state_before = load_build_state()
+        monitor.reset_turn()
+
+        # Ensure build session alive
+        if not build.is_alive():
+            log_warn("Build session died. Starting fresh.")
+            build = AgentSession("build", BUILD_INIT_PROMPT, model=args.model)
+            start_session_with_retry(build)
+
+        # Send continue prompt
+        log_info(f"Turn {turn + 1}/{args.max_turns} — sending continue prompt")
+        build.send(BUILD_CONTINUE_PROMPT)
+
+        # Read response with monitoring callback
+        def handle_build_line(line):
+            log_build_line(line)
+            monitor.process_line(line)
+
+        result = build.read_response(on_line=handle_build_line)
+
+        if result.get("process_died"):
+            log_warn("Build process died mid-turn. Will restart next iteration.")
+            continue
+
+        # Check if monitor detected an issue that needs mid-session injection
+        # (This applies for the NEXT turn since the current one just finished)
+        if monitor.pending_intervention and monitor.pending_intervention in CORRECTIONS:
+            intervention = monitor.pending_intervention
+            log_warn(f"Intervention triggered: {intervention}")
+            # The build agent's turn just ended, so we can inject a correction
+            # as the next message instead of the standard continue prompt
+            if build.is_alive():
+                build.send(CORRECTIONS[intervention])
+                correction_result = build.read_response(on_line=handle_build_line)
+                if correction_result.get("process_died"):
+                    log_warn("Build process died during correction.")
+
+        # Post-turn
+        git_pull()
+        state_after = load_build_state()
+
+        # Track progress
+        same_step = (
+            state_after.get("current_step") == state_before.get("current_step") and
+            state_after.get("current_phase") == state_before.get("current_phase")
+        )
+        if same_step:
+            no_progress_turns += 1
+        else:
+            no_progress_turns = 0
+            supervisor_calls_this_step = 0
+
+        # Status
+        total_cost = build.total_cost + (supervisor.total_cost if supervisor else 0)
+        log_status(state_after, total_cost, turn + 1)
+
+        # Escalation check (only if supervisor enabled)
+        if supervisor and not args.no_supervisor:
+            should, reason = should_escalate(state_before, state_after, no_progress_turns)
+
+            if should:
+                if supervisor_calls_this_step >= CONFIG["max_supervisor_calls_per_step"]:
+                    write_needs_human(
+                        f"Supervisor consulted {CONFIG['max_supervisor_calls_per_step']} times on "
+                        f"Phase {state_after.get('current_phase')} "
+                        f"Step {state_after.get('current_step')} with no progress."
+                    )
+                    wait_for_human()
+                    supervisor_calls_this_step = 0
+                    continue
+
+                if not supervisor.is_alive():
+                    log_info("Supervisor died. Restarting...")
+                    supervisor = AgentSession("supervisor", SUPERVISOR_INIT_PROMPT, model=args.model)
+                    start_session_with_retry(supervisor)
+
+                context = {
+                    "reason": reason,
+                    "phase": state_after.get("current_phase"),
+                    "step": state_after.get("current_step"),
+                    "no_progress_turns": no_progress_turns,
+                    "output_tail": monitor.get_tail(),
+                    "blocking_issues": state_after.get("blocking_issues", []),
+                }
+
+                if reason == "build_broken":
+                    try:
+                        build_err = subprocess.run(
+                            ["pnpm", "build"], capture_output=True, text=True,
+                            cwd=REPO_ROOT, timeout=120,
+                        )
+                        context["build_error"] = (build_err.stderr or build_err.stdout)[-500:]
+                    except (subprocess.TimeoutExpired, FileNotFoundError):
+                        context["build_error"] = "Could not capture build error"
+
+                esc_result = escalate_to_supervisor(build, supervisor, context)
+                supervisor_calls_this_step += 1
+
+                if esc_result == "needs_human":
+                    wait_for_human()
+                    supervisor_calls_this_step = 0
+
+        # Brief pause between turns
+        time.sleep(5)
+
+    # Cleanup
+    total_cost = build.total_cost + (supervisor.total_cost if supervisor else 0)
+    log_info(f"Runner finished. Total cost: ${total_cost:.2f}")
+    build.kill()
+    if supervisor:
+        supervisor.kill()
+
 
 if __name__ == "__main__":
     main()
