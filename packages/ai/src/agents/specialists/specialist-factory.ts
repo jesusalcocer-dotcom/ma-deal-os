@@ -8,6 +8,7 @@ import { getAnthropicClient } from '../../client';
 import { loadSkills } from '../../skills/skill-loader';
 import { findApplicableSkills } from '../../skills/skill-registry';
 import { ModelRouter } from '../../routing/model-router';
+import { PromptAssembler } from '../../prompts/prompt-assembler';
 import type { SpecialistConfig, SpecialistResult, SpecialistRunner } from '../types';
 
 /**
@@ -52,10 +53,28 @@ export function createSpecialist(config: SpecialistConfig, supabase?: SupabaseCl
     }
 
     // Build the specialist system prompt
-    const systemPrompt = buildSpecialistPrompt(config, skillContent);
+    const baseSystemPrompt = buildSpecialistPrompt(config, skillContent);
 
     // Build user message with task input
     const userMessage = buildTaskMessage(config, dealId, taskInput);
+
+    // Use PromptAssembler for 5-layer prompt if supabase available
+    let systemPrompt = baseSystemPrompt;
+    if (supabase) {
+      try {
+        const assembler = new PromptAssembler(supabase);
+        const assembled = await assembler.assemble({
+          agentType: config.task_type,
+          taskType: config.task_type,
+          dealId,
+          baseSystemPrompt,
+          taskContent: userMessage,
+        });
+        systemPrompt = assembled.systemPrompt;
+      } catch {
+        // Fallback to base prompt if assembler fails
+      }
+    }
 
     // Call Claude
     const response = await anthropic.messages.create({
