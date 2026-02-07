@@ -281,3 +281,138 @@ When stopping: commit everything, update BUILD_STATE.json with a clear descripti
 4. **Don't rebuild what works.** Phases 0-2 are done. Extend, don't rewrite.
 5. **When in doubt, commit and push.** Half-done code in the repo is better than perfect code lost to a session timeout.
 6. **Read GUIDANCE.md first.** The human may have left you instructions.
+
+# CLAUDE.md ADDENDUM — Learning System (Phases 15-20)
+
+## Add this section to the existing CLAUDE.md after "WHAT'S ALREADY BUILT"
+
+---
+
+## LEARNING SYSTEM ARCHITECTURE (Phases 15-20)
+
+### Reference Document
+Before building any learning system phase, read `docs/LEARNING_ARCHITECTURE.md`. This is the comprehensive reference document describing the four subsystems, five signal sources, reflection engine, knowledge injection, distillation pipeline, meta agent, and all database schemas. The skill files reference it frequently.
+
+### New Packages and Directories
+Learning system code goes in these locations:
+
+```
+packages/ai/src/
+  evaluation/           ← Self-evaluation, consistency checks, variant comparison
+    rubrics.ts
+    self-evaluator.ts
+    consistency-checker.ts
+    variant-generator.ts
+    outcome-tracker.ts
+    exemplar-service.ts
+    spend-tracker.ts
+  learning/             ← Reflection engine, pattern lifecycle
+    signal-aggregator.ts
+    reflection-engine.ts
+    pattern-lifecycle.ts
+    pattern-tracker.ts
+  prompts/              ← 5-layer prompt assembly
+    prompt-assembler.ts
+    layers/
+      constitutional.ts
+      firm-knowledge.ts
+      learned-patterns.ts
+      deal-intelligence.ts
+      exemplars.ts
+  communication/        ← Inter-agent communication
+    deal-intelligence.ts
+    agent-requests.ts
+    request-orchestrator.ts
+  distillation/         ← Distillation pipeline
+    trial-runner.ts
+    shadow-runner.ts
+    spot-checker.ts
+  routing/              ← Model routing
+    model-router.ts
+    novelty-scorer.ts
+  agents/meta/          ← Meta agent
+    meta-agent.ts
+    meta-prompts.ts
+    trigger-detector.ts
+
+packages/db/src/schema/
+  learning-signals.ts       ← Signal collection tables
+  learning-patterns.ts      ← Pattern and reflection tables
+  learning-communication.ts ← Agent communication tables
+  learning-distillation.ts  ← Distillation and routing tables
+  learning-governance.ts    ← Audit and config tables
+
+apps/web/src/app/
+  settings/models/      ← Model routing settings UI
+  settings/learning/    ← Learning toggle settings UI
+  settings/spend/       ← Spend control settings UI
+  learning/             ← Learning dashboard
+    patterns/           ← Pattern explorer
+    agents/             ← Agent performance
+    consistency/        ← Consistency log
+    audit/              ← Audit trail
+  how-it-works/         ← Explanation page
+```
+
+### Key Patterns for Learning Code
+
+**1. Always check if learning is enabled before running learning operations:**
+```typescript
+const enabled = await getLearningConfig('learning.self_evaluation.enabled');
+if (!enabled?.enabled) return; // Skip if disabled
+```
+
+**2. Fire-and-forget for non-blocking learning operations:**
+```typescript
+// Self-evaluation should NOT block the agent's response
+this.selfEvaluator.evaluate(params).catch(err => console.error('Eval failed:', err));
+```
+
+**3. All learning changes go through audit log:**
+```typescript
+await auditLog.record('pattern_created', {
+  entityType: 'pattern', entityId: pattern.id,
+  description: '...', beforeState: null, afterState: pattern,
+  reasoning: reflection.reasoning,
+});
+```
+
+**4. Supabase REST API for all table creation and testing queries:**
+```typescript
+// Create tables via SQL execution
+const { error } = await supabase.rpc('exec_sql', { sql: createTableSQL });
+// Or if rpc not available, use the Supabase Dashboard SQL Editor for initial table creation,
+// then verify via REST API queries
+
+// All CRUD via Supabase client
+const { data } = await supabase.from('learned_patterns').select('*').eq('lifecycle_stage', 'confirmed');
+```
+
+**5. Model selection always goes through the ModelRouter:**
+```typescript
+// NEVER hardcode model selection in learning phases
+const selection = await modelRouter.getModel(taskType, dealContext);
+// Then use: selection.model === 'opus' ? 'claude-opus-4-6' : 'claude-sonnet-4-5-20250929'
+```
+
+### Testing Learning System Code
+
+Learning system tests require actual data in the learning tables. For initial phases, seed test data before running tests. As the system accumulates real signals, tests can use production data.
+
+```bash
+# Seed test data for learning system
+npx tsx scripts/seed-learning-test-data.ts
+
+# Run learning-specific tests
+npx tsx scripts/test-self-evaluation.ts
+npx tsx scripts/test-consistency-check.ts
+npx tsx scripts/test-reflection-engine.ts
+npx tsx scripts/test-prompt-assembler.ts
+npx tsx scripts/test-full-learning-loop.ts
+
+# Verify all learning tables
+npx tsx scripts/verify-learning-schema.ts
+```
+
+### Environment Variables (no new ones needed)
+The learning system uses the existing Anthropic API key and Supabase credentials. No additional environment variables are required.

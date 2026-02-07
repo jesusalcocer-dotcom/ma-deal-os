@@ -195,6 +195,9 @@ importers:
       '@microsoft/microsoft-graph-client':
         specifier: ^3.0.0
         version: 3.0.7
+      '@supabase/supabase-js':
+        specifier: ^2.95.3
+        version: 2.95.3
       docx:
         specifier: ^9.5.1
         version: 9.5.1

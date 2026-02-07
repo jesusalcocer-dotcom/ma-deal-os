@@ -2324,3 +2324,39 @@ All credentials in `.env.local` at repo root (copied to `apps/web/.env.local` an
 ---
 
 *END OF SPECIFICATION*
+
+# SPEC.md ADDENDUM — Learning System Phases (15-20)
+
+## Add these phase descriptions to SPEC.md Section 20 (Implementation Phases)
+
+---
+
+### Phase 15: Learning Infrastructure — Database + Configuration + Model Routing
+Creates all 16 learning database tables (signal collection, patterns, communication, distillation, governance), seeds default configuration, and implements the model routing service that dynamically selects Claude Sonnet vs. Opus per task type based on performance data. Integrates model router into the existing agent invocation framework.
+**Tables:** self_evaluations, consistency_checks, variant_comparisons, outcome_signals, exemplar_library, exemplar_comparisons, learned_patterns, reflection_runs, skill_file_versions, generated_tools, deal_intelligence, agent_requests, meta_interventions, distillation_trials, model_routing_config, learning_audit_log, learning_configuration
+**Skill file:** skills/phase-15.md
+
+### Phase 16: Signal Collection — Self-Evaluation, Consistency Checks, Outcome Tracking
+Implements three of five signal sources. Every agent output is automatically scored by a separate evaluator instance against agent-specific rubrics. A nightly Consistency Agent compares all work products across a deal to detect contradictions. Downstream outcome tracking monitors what happens after agent outputs are delivered (ignored items, reopened positions, rewritten schedules).
+**Key files:** packages/ai/src/evaluation/
+**Skill file:** skills/phase-16.md
+
+### Phase 17: Variant Comparison, Exemplar Library, Distillation Pipeline
+Implements the remaining signal sources and the full distillation pipeline. Variant comparison generates 3 strategy variants per task (conservative/standard/aggressive), evaluates all three, and selects the best. The exemplar library stores gold-standard outputs (external firm exemplars + high-scoring Opus outputs). The distillation pipeline runs shadow tests of Sonnet + exemplars against Opus baselines and manages progressive model handoff as Sonnet quality improves.
+**Key files:** packages/ai/src/distillation/, packages/ai/src/evaluation/
+**Skill file:** skills/phase-17.md
+
+### Phase 18: Reflection Engine + Pattern Lifecycle Management
+Implements the Reflection Engine — an Opus-powered process that runs nightly or per-milestone, reading all collected signals and discovering actionable patterns. Patterns progress through a defined lifecycle (proposed → confirmed → established → hard_rule or decayed → retired) with confidence scores driven by supporting vs. contradicting signals. Human approval required for hard rule promotion.
+**Key files:** packages/ai/src/learning/
+**Skill file:** skills/phase-18.md
+
+### Phase 19: Knowledge Injection + Deal Intelligence + Agent Communication
+Closes the learning loop. Creates the 5-layer prompt assembler that injects constitutional rules, firm knowledge, learned patterns, deal intelligence, and task exemplars into every agent invocation. Implements the deal intelligence shared context store (agents read/write per-deal insights with conflict resolution) and agent-to-agent request delegation (with deadlock prevention).
+**Key files:** packages/ai/src/prompts/, packages/ai/src/communication/
+**Skill file:** skills/phase-19.md
+
+### Phase 20: Meta Agent + Control Plane + Learning Dashboard
+Implements the Meta Agent (Opus-only unsticker with four response modes: reroute, decompose, synthesize, escalate). Creates the control plane UI (model routing settings, learning toggles, spend controls) and the learning dashboard (overview metrics, pattern explorer, agent performance, consistency log, audit trail, "How It Works" explanation page).
+**Key files:** packages/ai/src/agents/meta/, apps/web/src/app/learning/, apps/web/src/app/settings/
+**Skill file:** skills/phase-20.md
