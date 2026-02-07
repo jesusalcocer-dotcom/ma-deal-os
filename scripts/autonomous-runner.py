@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-autonomous-runner.py V2 — Stream-JSON Bidirectional Architecture
+autonomous-runner.py V2 — Print + Resume Architecture
 
-Maintains persistent Claude Code sessions (Build Agent + Supervisor) using
-stream-json stdin/stdout pipes. The runner monitors build output in real-time,
-injects course corrections mid-session, and escalates to the Supervisor when needed.
+Manages Claude Code sessions using --print and --resume. Each "turn" is a separate
+subprocess invocation: the initial turn creates a session, subsequent turns resume it.
+Output is streamed in real-time via --output-format stream-json on stdout.
 
-Protocol: --input-format stream-json --output-format stream-json --verbose
-Tested and confirmed working with claude CLI v2.0.56.
+Protocol:
+  Start:  claude --print PROMPT --dangerously-skip-permissions --model MODEL --output-format stream-json
+  Resume: claude --print PROMPT --resume SESSION_ID --dangerously-skip-permissions --model MODEL --output-format stream-json
 
 Usage:
   python scripts/autonomous-runner.py                      # Start building
@@ -27,7 +28,6 @@ import signal
 import subprocess
 import sys
 import time
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -211,8 +211,22 @@ def load_env_file() -> dict[str, str]:
                 os.environ[key] = value
     return env_vars
 
+def save_session_ids(build_id: str | None, supervisor_id: str | None):
+    """Store active session IDs in BUILD_STATE.json for resumability."""
+    try:
+        state = load_build_state()
+        state["active_sessions"] = {
+            "build_session_id": build_id,
+            "supervisor_session_id": supervisor_id,
+        }
+        with open(BUILD_STATE_FILE, "w") as f:
+            json.dump(state, f, indent=2)
+            f.write("\n")
+    except Exception as e:
+        log_warn(f"Could not save session IDs: {e}")
+
 # ============================================================
-# Stream-JSON Protocol
+# Stream-JSON Output Formatting
 # ============================================================
 
 def format_event(event: dict) -> str | None:
@@ -243,144 +257,183 @@ def format_event(event: dict) -> str | None:
 
     return None
 
+# ============================================================
+# run_claude_turn — launch subprocess, stream output, return result
+# ============================================================
 
-def send_message(proc: subprocess.Popen, text: str):
-    """Send a user message to a stream-json process."""
-    message = json.dumps({
-        "type": "user",
-        "message": {
-            "role": "user",
-            "content": [{"type": "text", "text": text}]
-        }
-    }) + "\n"
-    proc.stdin.write(message)
-    proc.stdin.flush()
-
-
-def read_until_complete(proc: subprocess.Popen, on_line=None) -> dict:
+def run_claude_turn(args: list[str], on_line=None, session: "AgentSession | None" = None) -> dict:
     """
-    Read stdout lines until we get a 'result' event.
-    Returns dict with events, result, session_id, cost_usd, process_died.
+    Launch a claude subprocess with the given args.
+    Read stdout line by line for real-time stream-json output.
+    Returns when the subprocess exits.
     """
-    collected = []
-    for line in iter(proc.stdout.readline, ''):
-        line = line.strip()
+    proc = subprocess.Popen(
+        args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd=REPO_ROOT,
+    )
+
+    # Track for graceful shutdown
+    if session is not None:
+        session._current_proc = proc
+
+    collected: list[dict] = []
+    result_event: dict | None = None
+
+    for raw_line in iter(proc.stdout.readline, ''):
+        line = raw_line.strip()
         if not line:
             continue
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
+            # Non-JSON line (e.g. verbose output) — pass through
             if on_line:
                 on_line(line)
             continue
 
         collected.append(event)
 
-        # Format and display
         if on_line:
             formatted = format_event(event)
             if formatted:
                 on_line(formatted)
 
         if event.get("type") == "result":
-            return {
-                "events": collected,
-                "result": event,
-                "session_id": event.get("session_id"),
-                "cost_usd": event.get("total_cost_usd", 0),
-                "process_died": False,
-            }
+            result_event = event
 
-    # stdout closed — process died
-    return {
-        "events": collected,
-        "result": None,
-        "session_id": None,
-        "cost_usd": 0,
-        "process_died": True,
-    }
+    # stdout closed — wait for process to finish
+    try:
+        proc.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        proc.terminate()
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+
+    if session is not None:
+        session._current_proc = None
+
+    if result_event:
+        return {
+            "events": collected,
+            "result": result_event,
+            "session_id": result_event.get("session_id"),
+            "cost_usd": result_event.get("total_cost_usd", 0),
+            "is_error": result_event.get("is_error", False),
+            "process_died": False,
+        }
+    else:
+        # No result event — process crashed or errored out
+        stderr_text = ""
+        try:
+            stderr_text = proc.stderr.read()
+        except Exception:
+            pass
+        if stderr_text:
+            log_warn(f"Subprocess stderr: {stderr_text[:500]}")
+        return {
+            "events": collected,
+            "result": None,
+            "session_id": None,
+            "cost_usd": 0,
+            "is_error": True,
+            "stderr": stderr_text,
+            "process_died": True,
+        }
 
 # ============================================================
-# AgentSession — persistent stream-json session
+# AgentSession — print + resume session management
 # ============================================================
 
 class AgentSession:
-    """Manages a persistent Claude Code stream-json session."""
+    """
+    Manages a Claude Code session using --print and --resume.
+
+    start() launches: claude --print PROMPT [flags] --output-format stream-json
+    send_and_read() launches: claude --print PROMPT --resume SESSION_ID [flags] --output-format stream-json
+
+    Each turn is a separate subprocess invocation. The session persists
+    via session_id which is captured from the result event.
+    """
 
     def __init__(self, name: str, initial_prompt: str, model: str = None):
         self.name = name
-        self.proc: subprocess.Popen | None = None
         self.initial_prompt = initial_prompt
         self.model = model or CONFIG["claude_model"]
         self.turn_count = 0
         self.total_cost = 0.0
         self.session_id: str | None = None
+        self._current_proc: subprocess.Popen | None = None
 
-    def start(self) -> dict:
-        """Launch new Claude Code process and send initial prompt."""
-        self.proc = subprocess.Popen(
-            ["claude", "-p",
-             "--output-format", "stream-json",
-             "--input-format", "stream-json",
-             "--verbose",
-             "--dangerously-skip-permissions",
-             "--model", self.model],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            cwd=REPO_ROOT,
-        )
-        self.send(self.initial_prompt)
-        result = self.read_response()
-        self.session_id = result.get("session_id")
+    def _common_flags(self) -> list[str]:
+        return [
+            "--dangerously-skip-permissions",
+            "--model", self.model,
+            "--output-format", "stream-json",
+        ]
+
+    def start(self, on_line=None) -> dict:
+        """Launch initial turn — creates a new session."""
+        args = ["claude", "--print", self.initial_prompt] + self._common_flags()
+        result = run_claude_turn(args, on_line=on_line, session=self)
+        if result.get("session_id"):
+            self.session_id = result["session_id"]
         self.turn_count = 1
         self.total_cost = result.get("cost_usd", 0)
         return result
 
-    def send(self, text: str):
-        """Send a user message."""
-        if not self.is_alive():
-            raise RuntimeError(f"{self.name} session is dead")
-        send_message(self.proc, text)
-
-    def read_response(self, on_line=None) -> dict:
-        """Read until the assistant turn completes."""
-        result = read_until_complete(self.proc, on_line=on_line)
+    def send_and_read(self, text: str, on_line=None) -> dict:
+        """Resume the session with a new prompt. Launches a new subprocess."""
+        if not self.session_id:
+            raise RuntimeError(f"{self.name}: no session_id to resume")
+        args = (
+            ["claude", "--print", text, "--resume", self.session_id]
+            + self._common_flags()
+        )
+        result = run_claude_turn(args, on_line=on_line, session=self)
         self.turn_count += 1
-        self.total_cost = result.get("cost_usd", 0) or self.total_cost
+        self.total_cost += result.get("cost_usd", 0)
+        # Update session_id if returned (should stay the same)
+        if result.get("session_id"):
+            self.session_id = result["session_id"]
         return result
 
-    def send_and_read(self, text: str, on_line=None) -> dict:
-        """Send a message and read the complete response."""
-        self.send(text)
-        return self.read_response(on_line=on_line)
-
     def is_alive(self) -> bool:
-        return self.proc is not None and self.proc.poll() is None
+        """Session is resumable if we have a session_id."""
+        return self.session_id is not None
 
     def kill(self):
-        if self.proc:
-            self.proc.terminate()
+        """Kill any running subprocess for this session."""
+        if self._current_proc and self._current_proc.poll() is None:
+            self._current_proc.terminate()
             try:
-                self.proc.wait(timeout=10)
+                self._current_proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
-                self.proc.kill()
-            self.proc = None
+                self._current_proc.kill()
+                self._current_proc.wait()
+        self._current_proc = None
 
-    def restart(self):
-        """Kill and start fresh."""
+    def restart(self, on_line=None):
+        """Start a fresh session (new session_id)."""
         self.kill()
-        return self.start()
+        self.session_id = None
+        self.turn_count = 0
+        self.total_cost = 0.0
+        return self.start(on_line=on_line)
 
 # ============================================================
 # Session Start with Retry
 # ============================================================
 
-def start_session_with_retry(session: AgentSession, max_retries: int = 3) -> dict:
+def start_session_with_retry(session: AgentSession, on_line=None, max_retries: int = 3) -> dict:
     for attempt in range(max_retries):
         try:
-            result = session.start()
+            result = session.start(on_line=on_line)
             if not result.get("process_died"):
                 return result
             log_warn(f"{session.name} process died on start (attempt {attempt + 1})")
@@ -392,7 +445,7 @@ def start_session_with_retry(session: AgentSession, max_retries: int = 3) -> dic
 
     write_needs_human(f"Failed to start {session.name} session after {max_retries} attempts")
     wait_for_human()
-    return start_session_with_retry(session, max_retries)
+    return start_session_with_retry(session, on_line=on_line, max_retries=max_retries)
 
 # ============================================================
 # BuildMonitor — real-time output analysis
@@ -442,7 +495,7 @@ class BuildMonitor:
         self.pending_intervention = None
 
 # ============================================================
-# Course Correction Messages (mid-session injection)
+# Course Correction Messages
 # ============================================================
 
 CORRECTIONS = {
@@ -519,16 +572,22 @@ def build_escalation_message(reason: str, context: dict) -> str:
 # ============================================================
 
 def escalate_to_supervisor(
-    build_session: AgentSession,
     supervisor_session: AgentSession,
     context: dict,
-) -> str:
+) -> tuple[str, str | None]:
+    """
+    Send escalation to the Supervisor agent.
+    Returns (status, guidance_prompt_for_build).
+    status is one of: "needs_human", "guidance_sent", "no_guidance"
+    guidance_prompt_for_build is the prompt to send to the build agent on next resume,
+    or None if not applicable.
+    """
     message = build_escalation_message(context["reason"], context)
 
-    # Ensure supervisor is alive
+    # Ensure supervisor has a session
     if not supervisor_session.is_alive():
-        log_info("Supervisor session died. Restarting...")
-        start_session_with_retry(supervisor_session)
+        log_info("Supervisor session lost. Restarting...")
+        start_session_with_retry(supervisor_session, on_line=log_supervisor_line)
 
     log_info("[SUPERVISOR] Sending escalation...")
 
@@ -538,20 +597,24 @@ def escalate_to_supervisor(
 
     log_info(f"[SUPERVISOR] Done. Cost: ${result.get('cost_usd', 0):.2f}")
 
+    if result.get("process_died"):
+        log_warn("Supervisor process died during escalation.")
+        supervisor_session.session_id = None  # Force restart next time
+
     # Runner pulls to get GUIDANCE.md or NEEDS_HUMAN.md
     git_pull()
 
     if NEEDS_HUMAN_FILE.exists():
-        return "needs_human"
+        return "needs_human", None
 
-    # Tell build agent to read guidance
-    if build_session.is_alive() and GUIDANCE_FILE.exists():
-        build_session.send(
+    if GUIDANCE_FILE.exists():
+        guidance_prompt = (
             "Run git pull origin main. Read GUIDANCE.md and follow its instructions. "
             "Delete GUIDANCE.md when done, commit the deletion, then continue building."
         )
+        return "guidance_sent", guidance_prompt
 
-    return "guidance_sent"
+    return "no_guidance", None
 
 # ============================================================
 # NEEDS_HUMAN Handling
@@ -769,7 +832,7 @@ def main():
     # Start Build Agent
     log_info("Starting Build Agent...")
     build = AgentSession("build", BUILD_INIT_PROMPT, model=args.model)
-    init_result = start_session_with_retry(build)
+    init_result = start_session_with_retry(build, on_line=log_build_line)
     log_ok(f"Build Agent ready. Session: {build.session_id}")
 
     # Start Supervisor (unless disabled)
@@ -777,13 +840,20 @@ def main():
     if not args.no_supervisor:
         log_info("Starting Supervisor...")
         supervisor = AgentSession("supervisor", SUPERVISOR_INIT_PROMPT, model=args.model)
-        sup_result = start_session_with_retry(supervisor)
+        sup_result = start_session_with_retry(supervisor, on_line=log_supervisor_line)
         log_ok(f"Supervisor ready. Session: {supervisor.session_id}")
+
+    # Save session IDs to BUILD_STATE.json
+    save_session_ids(
+        build.session_id,
+        supervisor.session_id if supervisor else None,
+    )
 
     # Tracking
     monitor = BuildMonitor()
     no_progress_turns = 0
     supervisor_calls_this_step = 0
+    next_prompt: str | None = None  # Override for next turn's prompt (course corrections / guidance)
 
     for turn in range(args.max_turns):
         if shutdown_requested:
@@ -811,39 +881,40 @@ def main():
         state_before = load_build_state()
         monitor.reset_turn()
 
-        # Ensure build session alive
+        # Determine prompt for this turn
+        prompt = next_prompt or BUILD_CONTINUE_PROMPT
+        next_prompt = None  # Reset
+
+        # If build session has no session_id (died previously), restart it
         if not build.is_alive():
-            log_warn("Build session died. Starting fresh.")
+            log_warn("Build session lost. Starting fresh.")
             build = AgentSession("build", BUILD_INIT_PROMPT, model=args.model)
-            start_session_with_retry(build)
+            start_session_with_retry(build, on_line=log_build_line)
+            save_session_ids(
+                build.session_id,
+                supervisor.session_id if supervisor else None,
+            )
+            continue  # The start already sent the init prompt; loop back for next turn
 
-        # Send continue prompt
-        log_info(f"Turn {turn + 1}/{args.max_turns} — sending continue prompt")
-        build.send(BUILD_CONTINUE_PROMPT)
+        # Send turn
+        log_info(f"Turn {turn + 1}/{args.max_turns} — resuming session")
 
-        # Read response with monitoring callback
         def handle_build_line(line):
             log_build_line(line)
             monitor.process_line(line)
 
-        result = build.read_response(on_line=handle_build_line)
+        result = build.send_and_read(prompt, on_line=handle_build_line)
 
         if result.get("process_died"):
             log_warn("Build process died mid-turn. Will restart next iteration.")
+            build.session_id = None  # Force restart on next loop
             continue
 
-        # Check if monitor detected an issue that needs mid-session injection
-        # (This applies for the NEXT turn since the current one just finished)
+        # Check monitor for pending intervention — use as next turn's prompt
         if monitor.pending_intervention and monitor.pending_intervention in CORRECTIONS:
             intervention = monitor.pending_intervention
             log_warn(f"Intervention triggered: {intervention}")
-            # The build agent's turn just ended, so we can inject a correction
-            # as the next message instead of the standard continue prompt
-            if build.is_alive():
-                build.send(CORRECTIONS[intervention])
-                correction_result = build.read_response(on_line=handle_build_line)
-                if correction_result.get("process_died"):
-                    log_warn("Build process died during correction.")
+            next_prompt = CORRECTIONS[intervention]
 
         # Post-turn
         git_pull()
@@ -880,9 +951,10 @@ def main():
                     continue
 
                 if not supervisor.is_alive():
-                    log_info("Supervisor died. Restarting...")
+                    log_info("Supervisor session lost. Restarting...")
                     supervisor = AgentSession("supervisor", SUPERVISOR_INIT_PROMPT, model=args.model)
-                    start_session_with_retry(supervisor)
+                    start_session_with_retry(supervisor, on_line=log_supervisor_line)
+                    save_session_ids(build.session_id, supervisor.session_id)
 
                 context = {
                     "reason": reason,
@@ -903,12 +975,15 @@ def main():
                     except (subprocess.TimeoutExpired, FileNotFoundError):
                         context["build_error"] = "Could not capture build error"
 
-                esc_result = escalate_to_supervisor(build, supervisor, context)
+                esc_status, guidance_prompt = escalate_to_supervisor(supervisor, context)
                 supervisor_calls_this_step += 1
 
-                if esc_result == "needs_human":
+                if esc_status == "needs_human":
                     wait_for_human()
                     supervisor_calls_this_step = 0
+                elif esc_status == "guidance_sent" and guidance_prompt:
+                    # Override next turn's prompt to follow guidance
+                    next_prompt = guidance_prompt
 
         # Brief pause between turns
         time.sleep(5)
