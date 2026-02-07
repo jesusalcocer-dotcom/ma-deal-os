@@ -44,3 +44,8 @@ export { DistillationTrialRunner } from './distillation/trial-runner';
 export { ShadowRunner } from './distillation/shadow-runner';
 export { SpotChecker } from './distillation/spot-checker';
 export type { DistillationTrialResult, TrialDetail, ShadowTestResult, SpotCheckResult } from './distillation/types';
+export { SignalAggregator } from './learning/signal-aggregator';
+export { ReflectionEngine } from './learning/reflection-engine';
+export { PatternLifecycle } from './learning/pattern-lifecycle';
+export { PatternTracker } from './learning/pattern-tracker';
+export type { SignalBundle, ReflectionResult, ReflectionDecision, LearnedPattern, PromotionDecision, PatternImpact } from './learning/types';
