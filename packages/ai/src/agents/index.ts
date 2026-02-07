@@ -8,3 +8,5 @@ export {
   specialistRegistry,
   getSpecialistConfig,
 } from './specialists';
+export { activateSystemExpert } from './system-expert/system-expert';
+export type { SystemExpertResult } from './system-expert/system-expert';
