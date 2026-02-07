@@ -20,6 +20,7 @@ export function DealNav() {
     { href: `${base}/closing`, label: 'Closing' },
     { href: `${base}/client`, label: 'Client' },
     { href: `${base}/third-parties`, label: 'Third Parties' },
+    { href: `${base}/constitution`, label: 'Constitution' },
     { href: `${base}/agent`, label: 'Agent' },
     { href: `${base}/settings`, label: 'Settings' },
   ];
