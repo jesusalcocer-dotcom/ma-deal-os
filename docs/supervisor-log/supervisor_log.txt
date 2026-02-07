@@ -135,3 +135,9 @@ Let me execute this now.
 **Issue:** Build Agent stuck in loop — 2 turns checking for DB tables that don't exist, zero progress possible.
 
 **Root cause:** Environment...
+[00:58:47] [SUPERVISOR] Credit balance is too low
+[00:58:47] [SUPERVISOR] Credit balance is too low
+[00:59:09] [SUPERVISOR] Credit balance is too low
+[00:59:09] [SUPERVISOR] Credit balance is too low
+[00:59:21] [SUPERVISOR] Credit balance is too low
+[00:59:21] [SUPERVISOR] Credit balance is too low

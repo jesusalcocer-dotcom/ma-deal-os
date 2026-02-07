@@ -951,3 +951,262 @@ Let me check existing patterns first.
 [00:57:14] [BUILD] [tool: Bash]
 [00:57:18] [BUILD] As expected — the table needs to be created by the user. Build passes, cost calculation tests pass. Let me commit and advance.
 [00:57:19] [BUILD] [tool: Bash]
+[00:57:24] [BUILD] [tool: Bash]
+[00:57:29] [BUILD] Now update BUILD_STATE.json and advance to Step 4.6.
+[00:57:29] [BUILD] [tool: Read]
+[00:57:42] [BUILD] [tool: Write]
+[00:57:45] [BUILD] [tool: Bash]
+[00:57:51] [BUILD] Now **Step 4.6: Agent Management API Routes**. Per the skill file:
+1. `GET /api/deals/[dealId]/agent/activations` — list activations
+2. `GET /api/deals/[dealId]/agent/cost-summary` — cost summary
+3. `PUT /api/deals/[dealId]/agent/monitoring-level` — set monitoring level
+[00:57:54] [BUILD] [tool: TodoWrite]
+[00:57:58] [BUILD] [tool: Bash]
+[00:58:07] [BUILD] [tool: Write]
+[00:58:15] [BUILD] [tool: Write]
+[00:58:19] [BUILD] [tool: Write]
+[00:58:22] [BUILD] Now build to verify.
+[00:58:22] [BUILD] [tool: Bash]
+[00:58:44] [BUILD] Credit balance is too low
+[00:58:44] [BUILD] Credit balance is too low
+[00:58:45] [WARN] Intervention triggered: no_commits
+[STATUS] Phase 4 | Step 6 | Turn 3 | Cost: $18.44
+[00:58:45] [RUNNER] [SUPERVISOR] Sending escalation...
+[00:58:47] [SUPERVISOR] Credit balance is too low
+[00:58:47] [SUPERVISOR] Credit balance is too low
+[00:58:48] [RUNNER] [SUPERVISOR] Done. Cost: $0.00
+[00:58:54] [RUNNER] Turn 4/50 — resuming session
+[00:58:56] [BUILD] Credit balance is too low
+[00:58:56] [BUILD] Credit balance is too low
+[STATUS] Phase 4 | Step 6 | Turn 4 | Cost: $18.44
+[00:59:05] [RUNNER] Turn 5/50 — resuming session
+[00:59:06] [BUILD] Credit balance is too low
+[00:59:06] [BUILD] Credit balance is too low
+[STATUS] Phase 4 | Step 6 | Turn 5 | Cost: $18.44
+[00:59:08] [RUNNER] [SUPERVISOR] Sending escalation...
+[00:59:09] [SUPERVISOR] Credit balance is too low
+[00:59:09] [SUPERVISOR] Credit balance is too low
+[00:59:10] [RUNNER] [SUPERVISOR] Done. Cost: $0.00
+[00:59:17] [RUNNER] Turn 6/50 — resuming session
+[00:59:18] [BUILD] Credit balance is too low
+[00:59:18] [BUILD] Credit balance is too low
+[STATUS] Phase 4 | Step 6 | Turn 6 | Cost: $18.44
+[00:59:19] [RUNNER] [SUPERVISOR] Sending escalation...
+[00:59:21] [SUPERVISOR] Credit balance is too low
+[00:59:21] [SUPERVISOR] Credit balance is too low
+[00:59:22] [RUNNER] [SUPERVISOR] Done. Cost: $0.00
+[00:59:28] [RUNNER] Turn 7/50 — resuming session
+[00:59:30] [BUILD] Credit balance is too low
+[00:59:30] [BUILD] Credit balance is too low
+[STATUS] Phase 4 | Step 6 | Turn 7 | Cost: $18.44
+[00:59:32] [RUNNER] ==================================================
+[00:59:32] [RUNNER]  PAUSED — HUMAN INTERVENTION NEEDED
+[00:59:32] [RUNNER]  Read NEEDS_HUMAN.md for details
+[00:59:32] [RUNNER]  Delete the file, commit, and push to resume
+[00:59:32] [RUNNER] ==================================================
+[01:01:33] [RUNNER] Waiting for human... (01:01)
+[01:03:34] [RUNNER] Waiting for human... (01:03)
+[01:05:35] [RUNNER] Waiting for human... (01:05)
+[01:07:36] [RUNNER] Waiting for human... (01:07)
+[01:09:37] [RUNNER] Waiting for human... (01:09)
+[01:11:38] [RUNNER] Waiting for human... (01:11)
+[01:13:39] [RUNNER] Waiting for human... (01:13)
+[01:15:40] [RUNNER] Waiting for human... (01:15)
+[01:17:41] [RUNNER] Waiting for human... (01:17)
+[01:19:42] [RUNNER] Waiting for human... (01:19)
+[01:21:43] [RUNNER] Waiting for human... (01:21)
+[01:23:44] [RUNNER] Waiting for human... (01:23)
+[01:25:45] [RUNNER] Waiting for human... (01:25)
+[01:27:46] [RUNNER] Waiting for human... (01:27)
+[01:29:47] [RUNNER] Waiting for human... (01:29)
+[01:31:48] [RUNNER] Waiting for human... (01:31)
+[01:33:49] [RUNNER] Waiting for human... (01:33)
+[01:35:50] [RUNNER] Waiting for human... (01:35)
+[01:37:51] [RUNNER] Waiting for human... (01:37)
+[01:39:52] [RUNNER] Waiting for human... (01:39)
+[01:41:53] [RUNNER] Waiting for human... (01:41)
+[01:43:54] [RUNNER] Waiting for human... (01:43)
+[01:45:55] [RUNNER] Waiting for human... (01:45)
+[01:47:56] [RUNNER] Waiting for human... (01:47)
+[01:49:57] [RUNNER] Waiting for human... (01:49)
+[01:51:58] [RUNNER] Waiting for human... (01:51)
+[01:53:59] [RUNNER] Waiting for human... (01:53)
+[01:56:00] [RUNNER] Waiting for human... (01:56)
+[01:58:01] [RUNNER] Waiting for human... (01:58)
+[02:00:02] [RUNNER] Waiting for human... (02:00)
+[02:02:03] [RUNNER] Waiting for human... (02:02)
+[02:04:04] [RUNNER] Waiting for human... (02:04)
+[02:06:05] [RUNNER] Waiting for human... (02:06)
+[02:08:06] [RUNNER] Waiting for human... (02:08)
+[02:10:07] [RUNNER] Waiting for human... (02:10)
+[02:12:08] [RUNNER] Waiting for human... (02:12)
+[02:14:09] [RUNNER] Waiting for human... (02:14)
+[02:16:10] [RUNNER] Waiting for human... (02:16)
+[02:18:11] [RUNNER] Waiting for human... (02:18)
+[02:20:12] [RUNNER] Waiting for human... (02:20)
+[02:22:13] [RUNNER] Waiting for human... (02:22)
+[02:24:14] [RUNNER] Waiting for human... (02:24)
+[02:26:15] [RUNNER] Waiting for human... (02:26)
+[02:28:16] [RUNNER] Waiting for human... (02:28)
+[02:30:17] [RUNNER] Waiting for human... (02:30)
+[02:32:18] [RUNNER] Waiting for human... (02:32)
+[02:34:19] [RUNNER] Waiting for human... (02:34)
+[02:36:20] [RUNNER] Waiting for human... (02:36)
+[02:38:21] [RUNNER] Waiting for human... (02:38)
+[02:40:22] [RUNNER] Waiting for human... (02:40)
+[02:42:23] [RUNNER] Waiting for human... (02:42)
+[02:44:24] [RUNNER] Waiting for human... (02:44)
+[02:46:25] [RUNNER] Waiting for human... (02:46)
+[02:48:26] [RUNNER] Waiting for human... (02:48)
+[02:50:27] [RUNNER] Waiting for human... (02:50)
+[02:52:28] [RUNNER] Waiting for human... (02:52)
+[02:54:29] [RUNNER] Waiting for human... (02:54)
+[02:56:30] [RUNNER] Waiting for human... (02:56)
+[02:58:31] [RUNNER] Waiting for human... (02:58)
+[03:00:32] [RUNNER] Waiting for human... (03:00)
+[03:02:33] [RUNNER] Waiting for human... (03:02)
+[03:04:33] [RUNNER] Waiting for human... (03:04)
+[03:06:34] [RUNNER] Waiting for human... (03:06)
+[03:08:35] [RUNNER] Waiting for human... (03:08)
+[03:10:37] [RUNNER] Waiting for human... (03:10)
+[03:12:38] [RUNNER] Waiting for human... (03:12)
+[03:14:39] [RUNNER] Waiting for human... (03:14)
+[03:16:40] [RUNNER] Waiting for human... (03:16)
+[03:18:41] [RUNNER] Waiting for human... (03:18)
+[03:20:42] [RUNNER] Waiting for human... (03:20)
+[03:22:43] [RUNNER] Waiting for human... (03:22)
+[03:24:44] [RUNNER] Waiting for human... (03:24)
+[03:26:45] [RUNNER] Waiting for human... (03:26)
+[03:28:46] [RUNNER] Waiting for human... (03:28)
+[03:30:47] [RUNNER] Waiting for human... (03:30)
+[03:32:48] [RUNNER] Waiting for human... (03:32)
+[03:34:49] [RUNNER] Waiting for human... (03:34)
+[03:36:50] [RUNNER] Waiting for human... (03:36)
+[03:38:51] [RUNNER] Waiting for human... (03:38)
+[03:40:52] [RUNNER] Waiting for human... (03:40)
+[03:42:53] [RUNNER] Waiting for human... (03:42)
+[03:44:54] [RUNNER] Waiting for human... (03:44)
+[03:46:55] [RUNNER] Waiting for human... (03:46)
+[03:48:56] [RUNNER] Waiting for human... (03:48)
+[03:50:57] [RUNNER] Waiting for human... (03:50)
+[03:52:58] [RUNNER] Waiting for human... (03:52)
+[03:54:59] [RUNNER] Waiting for human... (03:54)
+[03:57:00] [RUNNER] Waiting for human... (03:57)
+[03:59:01] [RUNNER] Waiting for human... (03:59)
+[04:01:02] [RUNNER] Waiting for human... (04:01)
+[04:03:03] [RUNNER] Waiting for human... (04:03)
+[04:05:04] [RUNNER] Waiting for human... (04:05)
+[04:07:05] [RUNNER] Waiting for human... (04:07)
+[04:09:06] [RUNNER] Waiting for human... (04:09)
+[04:11:07] [RUNNER] Waiting for human... (04:11)
+[04:13:08] [RUNNER] Waiting for human... (04:13)
+[04:15:09] [RUNNER] Waiting for human... (04:15)
+[04:17:10] [RUNNER] Waiting for human... (04:17)
+[04:19:11] [RUNNER] Waiting for human... (04:19)
+[04:21:12] [RUNNER] Waiting for human... (04:21)
+[04:23:13] [RUNNER] Waiting for human... (04:23)
+[04:25:14] [RUNNER] Waiting for human... (04:25)
+[04:27:15] [RUNNER] Waiting for human... (04:27)
+[04:29:16] [RUNNER] Waiting for human... (04:29)
+[04:31:17] [RUNNER] Waiting for human... (04:31)
+[04:33:18] [RUNNER] Waiting for human... (04:33)
+[04:35:19] [RUNNER] Waiting for human... (04:35)
+[04:37:20] [RUNNER] Waiting for human... (04:37)
+[04:39:21] [RUNNER] Waiting for human... (04:39)
+[04:41:22] [RUNNER] Waiting for human... (04:41)
+[04:43:23] [RUNNER] Waiting for human... (04:43)
+[04:45:24] [RUNNER] Waiting for human... (04:45)
+[04:47:25] [RUNNER] Waiting for human... (04:47)
+[04:49:27] [RUNNER] Waiting for human... (04:49)
+[04:51:28] [RUNNER] Waiting for human... (04:51)
+[04:53:29] [RUNNER] Waiting for human... (04:53)
+[04:55:30] [RUNNER] Waiting for human... (04:55)
+[04:57:31] [RUNNER] Waiting for human... (04:57)
+[04:59:32] [RUNNER] Waiting for human... (04:59)
+[05:01:33] [RUNNER] Waiting for human... (05:01)
+[05:03:34] [RUNNER] Waiting for human... (05:03)
+[05:05:35] [RUNNER] Waiting for human... (05:05)
+[05:07:36] [RUNNER] Waiting for human... (05:07)
+[05:09:37] [RUNNER] Waiting for human... (05:09)
+[05:11:38] [RUNNER] Waiting for human... (05:11)
+[05:13:39] [RUNNER] Waiting for human... (05:13)
+[05:15:40] [RUNNER] Waiting for human... (05:15)
+[05:17:41] [RUNNER] Waiting for human... (05:17)
+[05:19:42] [RUNNER] Waiting for human... (05:19)
+[05:21:43] [RUNNER] Waiting for human... (05:21)
+[05:23:44] [RUNNER] Waiting for human... (05:23)
+[05:25:45] [RUNNER] Waiting for human... (05:25)
+[05:27:46] [RUNNER] Waiting for human... (05:27)
+[05:29:47] [RUNNER] Waiting for human... (05:29)
+[05:31:48] [RUNNER] Waiting for human... (05:31)
+[05:33:49] [RUNNER] Waiting for human... (05:33)
+[05:35:50] [RUNNER] Waiting for human... (05:35)
+[05:37:51] [RUNNER] Waiting for human... (05:37)
+[05:39:52] [RUNNER] Waiting for human... (05:39)
+[05:41:53] [RUNNER] Waiting for human... (05:41)
+[05:43:54] [RUNNER] Waiting for human... (05:43)
+[05:45:55] [RUNNER] Waiting for human... (05:45)
+[05:47:56] [RUNNER] Waiting for human... (05:47)
+[05:49:57] [RUNNER] Waiting for human... (05:49)
+[05:51:58] [RUNNER] Waiting for human... (05:51)
+[05:53:59] [RUNNER] Waiting for human... (05:53)
+[05:56:00] [RUNNER] Waiting for human... (05:56)
+[05:58:01] [RUNNER] Waiting for human... (05:58)
+[06:00:02] [RUNNER] Waiting for human... (06:00)
+[06:02:03] [RUNNER] Waiting for human... (06:02)
+[06:04:04] [RUNNER] Waiting for human... (06:04)
+[06:06:05] [RUNNER] Waiting for human... (06:06)
+[06:08:06] [RUNNER] Waiting for human... (06:08)
+[06:10:07] [RUNNER] Waiting for human... (06:10)
+[06:12:08] [RUNNER] Waiting for human... (06:12)
+[06:14:09] [RUNNER] Waiting for human... (06:14)
+[06:16:10] [RUNNER] Waiting for human... (06:16)
+[06:18:11] [RUNNER] Waiting for human... (06:18)
+[06:20:12] [RUNNER] Waiting for human... (06:20)
+[06:22:13] [RUNNER] Waiting for human... (06:22)
+[06:24:14] [RUNNER] Waiting for human... (06:24)
+[06:26:15] [RUNNER] Waiting for human... (06:26)
+[06:28:16] [RUNNER] Waiting for human... (06:28)
+[06:30:17] [RUNNER] Waiting for human... (06:30)
+[06:32:18] [RUNNER] Waiting for human... (06:32)
+[06:34:19] [RUNNER] Waiting for human... (06:34)
+[06:36:20] [RUNNER] Waiting for human... (06:36)
+[06:38:21] [RUNNER] Waiting for human... (06:38)
+[06:40:22] [RUNNER] Waiting for human... (06:40)
+[06:42:23] [RUNNER] Waiting for human... (06:42)
+[06:44:24] [RUNNER] Waiting for human... (06:44)
+[06:46:25] [RUNNER] Waiting for human... (06:46)
+[06:48:26] [RUNNER] Waiting for human... (06:48)
+[06:50:27] [RUNNER] Waiting for human... (06:50)
+[06:52:28] [RUNNER] Waiting for human... (06:52)
+[06:54:29] [RUNNER] Waiting for human... (06:54)
+[06:56:30] [RUNNER] Waiting for human... (06:56)
+[06:58:31] [RUNNER] Waiting for human... (06:58)
+[07:00:32] [RUNNER] Waiting for human... (07:00)
+[07:02:33] [RUNNER] Waiting for human... (07:02)
+[07:04:34] [RUNNER] Waiting for human... (07:04)
+[07:06:35] [RUNNER] Waiting for human... (07:06)
+[07:08:36] [RUNNER] Waiting for human... (07:08)
+[07:10:37] [RUNNER] Waiting for human... (07:10)
+[07:12:38] [RUNNER] Waiting for human... (07:12)
+[07:14:39] [RUNNER] Waiting for human... (07:14)
+[07:16:40] [RUNNER] Waiting for human... (07:16)
+[07:18:42] [RUNNER] Waiting for human... (07:18)
+[07:20:43] [RUNNER] Waiting for human... (07:20)
+[07:22:44] [RUNNER] Waiting for human... (07:22)
+[07:24:45] [RUNNER] Waiting for human... (07:24)
+[07:26:46] [RUNNER] Waiting for human... (07:26)
+[07:28:47] [RUNNER] Waiting for human... (07:28)
+[07:30:48] [RUNNER] Waiting for human... (07:30)
+[07:32:49] [RUNNER] Waiting for human... (07:32)
+[07:34:50] [RUNNER] Waiting for human... (07:34)
+[07:36:51] [RUNNER] Waiting for human... (07:36)
+[07:38:52] [RUNNER] Waiting for human... (07:38)
+[07:40:53] [RUNNER] Waiting for human... (07:40)
+[07:42:54] [RUNNER] Waiting for human... (07:42)
+[07:44:55] [RUNNER] Waiting for human... (07:44)
+[07:46:56] [RUNNER] Waiting for human... (07:46)
+[07:48:57] [RUNNER] Waiting for human... (07:48)
+[07:50:58] [RUNNER] Waiting for human... (07:50)
+[07:52:59] [RUNNER] Waiting for human... (07:52)
+[07:55:00] [RUNNER] Waiting for human... (07:55)
