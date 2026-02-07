@@ -94,17 +94,28 @@ pnpm dev
 The system is designed to be built by Claude Code autonomously, phase by phase:
 
 ```bash
-# Check current phase and validate environment
-./scripts/autonomous-runner.sh
+# Pre-flight checks only (dry run)
+python scripts/autonomous-runner.py --dry-run
 
-# Or override to a specific phase
-./scripts/autonomous-runner.sh 3
+# Launch a single session for the current phase
+python scripts/autonomous-runner.py --auto-launch
 
-# Auto-launch Claude Code
-AUTO_LAUNCH=true ./scripts/autonomous-runner.sh
+# Override to a specific phase
+python scripts/autonomous-runner.py --phase 3 --auto-launch
+
+# Run up to 5 consecutive sessions
+python scripts/autonomous-runner.py --max-sessions 5 --auto-launch
+
+# Resume a previous session
+python scripts/autonomous-runner.py --resume <session-id>
+
+# Machine-readable JSON output (for CI/CD)
+python scripts/autonomous-runner.py --auto-launch --output-format json
 ```
 
-Each phase has a skill file (`skills/phase-NN.md`) with step-by-step build instructions, test commands, and acceptance criteria.
+The runner tracks session IDs, estimates costs, detects stuck conditions via git monitoring, and auto-generates `GUIDANCE.md` when the build stalls. Session logs are saved to `docs/session-logs/`.
+
+Each phase has a skill file (`skills/phase-NN.md`) with step-by-step build instructions, test commands, and acceptance criteria. The `skills/current-phase.md` symlink always points to the active phase.
 
 ## Key Files
 
