@@ -19,6 +19,7 @@ import * as clientManagementSchema from './schema/client-management';
 import * as closingSchema from './schema/closing';
 import * as skillsRegistrySchema from './schema/skills-registry';
 import * as observerChangelogSchema from './schema/observer-changelog';
+import * as feedbackSchema from './schema/feedback';
 
 export const schema = {
   ...usersSchema,
@@ -40,6 +41,7 @@ export const schema = {
   ...closingSchema,
   ...skillsRegistrySchema,
   ...observerChangelogSchema,
+  ...feedbackSchema,
 };
 
 let db: ReturnType<typeof createDb> | null = null;
@@ -62,7 +64,7 @@ export function getDb() {
 
 export type Database = ReturnType<typeof getDb>;
 
-export { usersSchema, dealsSchema, checklistSchema, documentSchema, provisionSchema, ddSchema, emailSchema, driveSchema, propagationEventsSchema, actionChainsSchema, approvalPoliciesSchema, agentActivationsSchema, disclosureSchedulesSchema, negotiationSchema, thirdPartiesSchema, clientManagementSchema, closingSchema, skillsRegistrySchema, observerChangelogSchema };
+export { usersSchema, dealsSchema, checklistSchema, documentSchema, provisionSchema, ddSchema, emailSchema, driveSchema, propagationEventsSchema, actionChainsSchema, approvalPoliciesSchema, agentActivationsSchema, disclosureSchedulesSchema, negotiationSchema, thirdPartiesSchema, clientManagementSchema, closingSchema, skillsRegistrySchema, observerChangelogSchema, feedbackSchema };
 export * from './schema/users';
 export * from './schema/deals';
 export * from './schema/checklist-items';
@@ -82,3 +84,4 @@ export * from './schema/client-management';
 export * from './schema/closing';
 export * from './schema/skills-registry';
 export * from './schema/observer-changelog';
+export * from './schema/feedback';
