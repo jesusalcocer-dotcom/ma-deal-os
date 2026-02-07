@@ -1,6 +1,6 @@
 {
-  "current_phase": 16,
+  "current_phase": 17,
   "current_step": 1,
-  "current_step_name": "Signal Collection Infrastructure",
-  "phase_title": "Signal Collection — Self-Evaluation + Consistency Checks + Outcome Tracking"
+  "current_step_name": "Variant Comparison and Exemplar Pipeline",
+  "phase_title": "Signal Collection Part 2 — Variant Comparison + Exemplar Benchmarking"
 }
