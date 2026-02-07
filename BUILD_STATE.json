@@ -1,10 +1,10 @@
 {
   "version": "2.0",
   "project": "ma-deal-os",
-  "current_phase": 10,
+  "current_phase": 11,
   "current_step": 1,
-  "current_step_name": "Pending — check skills/phase-10.md",
-  "phase_title": "Phase 10 (Next)",
+  "current_step_name": "Pending — check skills/phase-11.md",
+  "phase_title": "Phase 11 (Next)",
   "completed_phases": [
     {
       "phase": 0,
@@ -65,12 +65,18 @@
       "title": "Partner Constitution & Governance",
       "completed_at": "2026-02-08T01:00:00Z",
       "test_report": "docs/test-results/phase9_test_report.md"
+    },
+    {
+      "phase": 10,
+      "title": "Precedent Intelligence Pipeline",
+      "completed_at": "2026-02-08T02:00:00Z",
+      "test_report": "docs/test-results/phase10_test_report.md"
     }
   ],
-  "last_completed_step": "9.7",
-  "last_completed_at": "2026-02-08T01:00:00Z",
-  "last_commit": "f72ca8f",
-  "total_commits_this_session": 26,
+  "last_completed_step": "10.8",
+  "last_completed_at": "2026-02-08T02:00:00Z",
+  "last_commit": "fc6509a",
+  "total_commits_this_session": 35,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -110,6 +116,12 @@
       "item": "deals.constitution column (migration 014)",
       "severity": "HIGH",
       "impact": "PUT returns 500, GET returns null fallback. Encode pipeline works."
+    },
+    {
+      "phase": 10,
+      "item": "Quality score columns on provision_formulations (migration 015)",
+      "severity": "HIGH",
+      "impact": "Scoring, retrieval, quality report return empty. Code is correct."
     }
   ],
   "verified_items": [
@@ -238,6 +250,24 @@
       "item": "Constitution page renders",
       "verified_at": "2026-02-08T01:00:00Z",
       "result": "HTTP 200 at /deals/[dealId]/constitution"
+    },
+    {
+      "phase": 10,
+      "item": "Firm tier lookup (62 firms)",
+      "verified_at": "2026-02-08T02:00:00Z",
+      "result": "Wachtell=1.0, Latham=0.85, Jones Day=0.70, Unknown=0.40"
+    },
+    {
+      "phase": 10,
+      "item": "Quality scoring function",
+      "verified_at": "2026-02-08T02:00:00Z",
+      "result": "S&C + large deal + 2025 = composite 0.69"
+    },
+    {
+      "phase": 10,
+      "item": "Precedent API endpoints",
+      "verified_at": "2026-02-08T02:00:00Z",
+      "result": "Search returns 0 results, quality report returns stats"
     }
   ],
   "session_history": [
@@ -302,10 +332,10 @@
       "steps_completed": ["8.1", "8.2", "8.3", "8.4", "8.5", "8.6", "8.7", "8.8", "8.9"]
     },
     {
-      "session_id": "s-09-session1",
+      "session_id": "s-09-10-session1",
       "started_at": "2026-02-08T00:00:00Z",
-      "steps_completed": ["9.1", "9.2", "9.3", "9.4", "9.5", "9.6", "9.7"]
+      "steps_completed": ["9.1", "9.2", "9.3", "9.4", "9.5", "9.6", "9.7", "10.1", "10.2", "10.3", "10.4", "10.5", "10.6", "10.7", "10.8"]
     }
   ],
-  "notes": "Phase 9 COMPLETE. Constitution data model, API routes (GET/PUT/encode), conversational encoding pipeline, Manager enforcement, consequence resolver enforcement, Web UI. Migration 014 deferred. Ready for Phase 10."
+  "notes": "Phase 10 COMPLETE. Quality scoring (6 columns, firm tiers, heuristic scorer), EDGAR discovery/ingestion pipelines, quality-weighted retrieval, what's-market analysis, dynamic quality learning, precedent API routes. Migration 015 deferred. Ready for Phase 11."
 }
