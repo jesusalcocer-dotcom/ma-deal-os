@@ -2,8 +2,8 @@
   "version": "2.0",
   "project": "ma-deal-os",
   "current_phase": 3,
-  "current_step": 5,
-  "current_step_name": "Propagation Events Table",
+  "current_step": 10,
+  "current_step_name": "Integration Test — End-to-End Event Flow",
   "phase_title": "MCP Infrastructure + Event Backbone",
   "completed_phases": [
     {
@@ -25,13 +25,20 @@
       "test_report": "docs/test-results/phase2_test_report.md"
     }
   ],
-  "last_completed_step": "3.4",
-  "last_completed_at": "2026-02-07T05:10:00Z",
-  "last_commit": "4ebece2",
-  "total_commits_this_session": 1,
+  "last_completed_step": "3.9",
+  "last_completed_at": "2026-02-07T05:30:00Z",
+  "last_commit": "8395f28",
+  "total_commits_this_session": 4,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
-  "blocking_issues": [],
+  "blocking_issues": [
+    {
+      "issue": "Supabase DB host does not resolve — cannot create tables via DDL",
+      "impact": "Tables propagation_events, action_chains, proposed_actions need to be created via Supabase Dashboard SQL Editor",
+      "workaround": "SQL migration file at scripts/migrations/003-event-propagation-tables.sql — user must run manually",
+      "severity": "CRITICAL"
+    }
+  ],
   "deferred_items": [
     {
       "phase": 2,
@@ -44,9 +51,7 @@
     {
       "session_id": "s-03-20260206-213854-a49117",
       "started_at": "2026-02-07T02:38:00Z",
-      "steps_completed": [
-        "3.1"
-      ]
+      "steps_completed": ["3.1"]
     },
     {
       "session_id": "s-03-20260206-213854-a49117",
@@ -64,15 +69,13 @@
     {
       "session_id": "s-03-session2",
       "started_at": "2026-02-07T04:00:00Z",
-      "steps_completed": [
-        "3.2", "3.3"
-      ]
+      "steps_completed": ["3.2", "3.3"]
     },
     {
       "session_id": "s-03-session3",
       "started_at": "2026-02-07T05:00:00Z",
-      "steps_completed": ["3.4"]
+      "steps_completed": ["3.4", "3.5", "3.6", "3.7", "3.8", "3.9"]
     }
   ],
-  "notes": "Phase 3 in progress. Steps 3.1-3.4 complete. Event types defined (PropagationEventType, PropagationEvent, ActionChain, ProposedAction, ConsequenceMap). Starting step 3.5: Propagation Events Table."
+  "notes": "Phase 3 steps 3.4-3.9 code complete. All builds pass. BLOCKER: DB tables must be created manually via Supabase Dashboard (SQL in scripts/migrations/003-event-propagation-tables.sql). Once tables exist, run: npx tsx scripts/test-event-pipeline.ts"
 }
