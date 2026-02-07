@@ -1,6 +1,6 @@
 {
-  "current_phase": 19,
+  "current_phase": 20,
   "current_step": 1,
-  "current_step_name": "Knowledge Injection",
-  "phase_title": "Knowledge Injection — 5-Layer Prompt Assembly + Pattern Injection"
+  "current_step_name": "Learning Dashboard + Governance UI",
+  "phase_title": "Learning Dashboard — Monitoring, Governance, and Observability"
 }
