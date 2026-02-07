@@ -16,3 +16,5 @@ export { searchEdgar, downloadExhibit } from './precedent/edgar-discovery';
 export type { EdgarSearchParams, EdgarFiling, EdgarExhibit } from './precedent/edgar-discovery';
 export { ingestFromEdgar } from './precedent/edgar-ingestion';
 export type { IngestionResult, IngestionConfig } from './precedent/edgar-ingestion';
+export { updateQualityFromFeedback } from './precedent/quality-updater';
+export type { QualityFeedbackEvent } from './precedent/quality-updater';
