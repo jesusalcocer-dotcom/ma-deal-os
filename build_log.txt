@@ -1,0 +1,20 @@
+[23:26:39] [RUNNER] Running pre-flight checks...
+[23:26:39] [OK] Environment variables present
+[23:26:39] [OK] Required tools available
+[23:26:39] [OK] Node.js v22.12.0
+[23:26:39] [OK] Pre-flight checks passed. Dry run — not launching.
+[23:26:39] [RUNNER] Would start at Phase 3, Step 2
+[23:28:30] [RUNNER] Running pre-flight checks...
+[23:28:30] [OK] Environment variables present
+[23:28:30] [OK] Required tools available
+[23:28:30] [OK] Node.js v22.12.0
+[23:28:32] [OK] Supabase connection verified
+[23:28:33] [RUNNER] ==================================================
+[23:28:33] [RUNNER]   M&A DEAL OS — AUTONOMOUS BUILD V2
+[23:28:33] [RUNNER]   Starting Phase 3, Step 2
+[23:28:33] [RUNNER]   Model: claude-opus-4-6
+[23:28:33] [RUNNER]   Max turns: 50
+[23:28:33] [RUNNER]   Max cost: $200.00
+[23:28:33] [RUNNER]   Supervisor: enabled
+[23:28:33] [RUNNER] ==================================================
+[23:28:33] [RUNNER] Starting Build Agent...

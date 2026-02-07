@@ -1,6 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { registerDealTools } from './tools/deal-tools.js';
+import { registerChecklistTools } from './tools/checklist-tools.js';
+import { registerDocumentTools } from './tools/document-tools.js';
+import { registerPrecedentTools } from './tools/precedent-tools.js';
 
 export const MCP_SERVER_VERSION = '0.1.0';
 
@@ -11,6 +14,9 @@ export function createServer(): McpServer {
   });
 
   registerDealTools(server);
+  registerChecklistTools(server);
+  registerDocumentTools(server);
+  registerPrecedentTools(server);
 
   return server;
 }
