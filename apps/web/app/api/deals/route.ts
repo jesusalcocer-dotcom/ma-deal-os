@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/supabase/server';
-import { deals } from '@ma-deal-os/db';
-import { desc, eq } from 'drizzle-orm';
+import { supabase } from '@/lib/supabase/server';
 import { createDealFolderStructure } from '@ma-deal-os/integrations';
 
 export async function GET() {
   try {
-    const result = await db().select().from(deals).orderBy(desc(deals.created_at));
-    return NextResponse.json(result);
+    const { data, error } = await supabase()
+      .from('deals')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Failed to list deals:', error);
     return NextResponse.json({ error: 'Failed to list deals' }, { status: 500 });
@@ -23,9 +25,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Deal name is required' }, { status: 400 });
     }
 
-    const [deal] = await db()
-      .insert(deals)
-      .values({
+    const { data: dealData, error } = await supabase()
+      .from('deals')
+      .insert({
         name,
         code_name: code_name || null,
         status: 'active',
@@ -36,19 +38,25 @@ export async function POST(req: NextRequest) {
         target_name: target_name || null,
         buyer_name: buyer_name || null,
         seller_name: seller_name || null,
-      })
-      .returning();
+        email_thread_ids: [],
+      } as any)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    const deal = dealData as any;
 
     // Try to create Google Drive folder (non-blocking)
     try {
       const driveResult = await createDealFolderStructure(name, code_name);
-      await db()
-        .update(deals)
-        .set({
+      await supabase()
+        .from('deals')
+        .update({
           drive_folder_id: driveResult.rootFolderId,
           drive_folder_url: driveResult.rootFolderUrl,
-        })
-        .where(eq(deals.id, deal.id));
+        } as any)
+        .eq('id', deal.id);
       deal.drive_folder_id = driveResult.rootFolderId;
       deal.drive_folder_url = driveResult.rootFolderUrl;
     } catch (driveError) {

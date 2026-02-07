@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/supabase/server';
-import { deals } from '@ma-deal-os/db';
-import { eq } from 'drizzle-orm';
+import { supabase } from '@/lib/supabase/server';
 
 export async function GET(_req: NextRequest, { params }: { params: { dealId: string } }) {
   try {
     const { dealId } = await params;
-    const result = await db().select().from(deals).where(eq(deals.id, dealId));
-    if (result.length === 0) {
+    const { data, error } = await supabase()
+      .from('deals')
+      .select('*')
+      .eq('id', dealId)
+      .single();
+
+    if (error || !data) {
       return NextResponse.json({ error: 'Deal not found' }, { status: 404 });
     }
-    return NextResponse.json(result[0]);
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Failed to get deal:', error);
     return NextResponse.json({ error: 'Failed to get deal' }, { status: 500 });
@@ -22,27 +25,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { dealId: st
     const { dealId } = await params;
     const body = await req.json();
 
-    const updateData: Record<string, any> = { updated_at: new Date() };
+    const updateData: Record<string, any> = { ...body, updated_at: new Date().toISOString() };
 
-    const allowedFields = [
-      'name', 'code_name', 'status', 'parameters', 'deal_value',
-      'industry', 'buyer_type', 'target_name', 'buyer_name', 'seller_name',
-      'expected_signing_date', 'expected_closing_date',
-    ];
+    const { data: updated, error } = await supabase()
+      .from('deals')
+      .update(updateData as any)
+      .eq('id', dealId)
+      .select()
+      .single();
 
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updateData[field] = body[field];
-      }
-    }
-
-    const [updated] = await db()
-      .update(deals)
-      .set(updateData)
-      .where(eq(deals.id, dealId))
-      .returning();
-
-    if (!updated) {
+    if (error || !updated) {
       return NextResponse.json({ error: 'Deal not found' }, { status: 404 });
     }
 
@@ -56,19 +48,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { dealId: st
 export async function DELETE(_req: NextRequest, { params }: { params: { dealId: string } }) {
   try {
     const { dealId } = await params;
-    const [updated] = await db()
-      .update(deals)
-      .set({ status: 'terminated', updated_at: new Date() })
-      .where(eq(deals.id, dealId))
-      .returning();
+    const { data: updated, error } = await supabase()
+      .from('deals')
+      .update({ status: 'terminated', updated_at: new Date().toISOString() } as any)
+      .eq('id', dealId)
+      .select()
+      .single();
 
-    if (!updated) {
+    if (error || !updated) {
       return NextResponse.json({ error: 'Deal not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ message: 'Deal terminated', deal: updated });
   } catch (error) {
-    console.error('Failed to archive deal:', error);
-    return NextResponse.json({ error: 'Failed to archive deal' }, { status: 500 });
+    console.error('Failed to delete deal:', error);
+    return NextResponse.json({ error: 'Failed to delete deal' }, { status: 500 });
   }
 }
