@@ -79,6 +79,11 @@ export function createSpecialist(config: SpecialistConfig, supabase?: SupabaseCl
     // Parse structured output
     const parsed = parseSpecialistOutput(responseText, config);
 
+    // Fire-and-forget self-evaluation
+    if (supabase) {
+      triggerSpecialistEvaluation(supabase, config.task_type, responseText, dealId, model);
+    }
+
     return {
       task_type: config.task_type,
       output: parsed.output,
@@ -196,6 +201,33 @@ function parseSpecialistOutput(
     recommendations: [],
     action_items: [],
   };
+}
+
+/**
+ * Fire-and-forget self-evaluation for specialist output.
+ */
+function triggerSpecialistEvaluation(
+  sb: SupabaseClient,
+  taskType: string,
+  output: string,
+  dealId: string,
+  modelUsed: string
+): void {
+  import('../../evaluation/self-evaluator').then(({ SelfEvaluator }) => {
+    const evaluator = new SelfEvaluator(sb);
+    return evaluator.evaluate({
+      agentType: taskType,
+      output,
+      sourceDocuments: [],
+      dealContext: { dealId },
+    }).then((evaluation) => {
+      const { ModelRouter: MR } = require('../../routing/model-router');
+      const router = new MR(sb);
+      return router.recordScore(taskType, evaluation.overallScore, modelUsed);
+    });
+  }).catch((err) => {
+    console.warn('Specialist self-evaluation failed:', err?.message || err);
+  });
 }
 
 /**

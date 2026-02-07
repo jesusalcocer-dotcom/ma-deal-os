@@ -8,6 +8,7 @@ import { getAnthropicClient } from '../../client';
 import { loadManagerContext } from './context-loader';
 import { buildManagerPrompt } from './system-prompt';
 import { ModelRouter } from '../../routing/model-router';
+import { SelfEvaluator } from '../../evaluation/self-evaluator';
 import type {
   ManagerContext,
   AgentActivationRecord,
@@ -162,6 +163,14 @@ export async function activateManager(
   // 8. Track activation in database
   await trackActivation(supabase, activation);
 
+  // 9. Fire-and-forget self-evaluation (don't block response delivery)
+  triggerSelfEvaluation(supabase, {
+    agentType: 'manager',
+    output: responseText,
+    dealId,
+    model: routerSelection?.model || 'sonnet',
+  });
+
   return {
     response: responseText,
     context,
@@ -304,6 +313,43 @@ function calculateCost(
 
   const rates = pricing[model] || pricing['claude-sonnet-4-5-20250929'];
   return (inputTokens * rates.input + outputTokens * rates.output) / 1_000_000;
+}
+
+/**
+ * Fire-and-forget self-evaluation of agent output.
+ * Checks learning configuration, then runs evaluation asynchronously.
+ */
+function triggerSelfEvaluation(
+  supabase: SupabaseClient,
+  params: { agentType: string; output: string; dealId: string; model: string }
+): void {
+  // Wrap in Promise.resolve to get a proper Promise with .catch
+  Promise.resolve(
+    supabase
+      .from('learning_configuration')
+      .select('config_value')
+      .eq('config_key', 'learning.self_evaluation.enabled')
+      .single()
+  )
+    .then(({ data }) => {
+      const enabled = (data?.config_value as Record<string, unknown>)?.enabled !== false;
+      if (!enabled) return;
+
+      const evaluator = new SelfEvaluator(supabase);
+      return evaluator.evaluate({
+        agentType: params.agentType,
+        output: params.output,
+        sourceDocuments: [],
+        dealContext: { dealId: params.dealId },
+      }).then((evaluation) => {
+        const router = new ModelRouter(supabase);
+        return router.recordScore(params.agentType, evaluation.overallScore, params.model);
+      });
+    })
+    .catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn('Self-evaluation background task failed:', message);
+    });
 }
 
 /**
