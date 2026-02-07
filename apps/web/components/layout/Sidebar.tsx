@@ -2,12 +2,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, FolderKanban, Settings, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, Settings, ShieldCheck, Brain, BookOpen } from 'lucide-react';
 
 const navItems = [
   { href: '/deals', label: 'Deals', icon: FolderKanban },
   { href: '/approval-queue', label: 'Approvals', icon: ShieldCheck },
+  { href: '/learning', label: 'Learning', icon: Brain },
   { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/how-it-works', label: 'How It Works', icon: BookOpen },
 ];
 
 export function Sidebar() {
