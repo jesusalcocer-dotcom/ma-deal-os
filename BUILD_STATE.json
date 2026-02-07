@@ -1,10 +1,10 @@
 {
   "version": "2.0",
   "project": "ma-deal-os",
-  "current_phase": 8,
+  "current_phase": 9,
   "current_step": 1,
-  "current_step_name": "Pending — check skills/phase-08.md",
-  "phase_title": "Phase 8 (Next)",
+  "current_step_name": "Pending — check skills/phase-09.md",
+  "phase_title": "Phase 9 (Next)",
   "completed_phases": [
     {
       "phase": 0,
@@ -53,12 +53,18 @@
       "title": "Agent Layer (Manager, Specialists, System Expert)",
       "completed_at": "2026-02-07T21:00:00Z",
       "test_report": "docs/test-results/phase7_test_report.md"
+    },
+    {
+      "phase": 8,
+      "title": "Skills System",
+      "completed_at": "2026-02-07T22:00:00Z",
+      "test_report": "docs/test-results/phase8_test_report.md"
     }
   ],
-  "last_completed_step": "7.9",
-  "last_completed_at": "2026-02-07T21:00:00Z",
-  "last_commit": "e515586",
-  "total_commits_this_session": 9,
+  "last_completed_step": "8.9",
+  "last_completed_at": "2026-02-07T22:00:00Z",
+  "last_commit": "70878cc",
+  "total_commits_this_session": 17,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -86,6 +92,12 @@
       "item": "closing_checklists, closing_conditions, closing_deliverables, post_closing_obligations tables (migration 012)",
       "severity": "HIGH",
       "impact": "Tables need creation via Supabase Dashboard"
+    },
+    {
+      "phase": 8,
+      "item": "skills_registry table (migration 013)",
+      "severity": "HIGH",
+      "impact": "Seed script works, table needs creation via Supabase Dashboard"
     }
   ],
   "verified_items": [
@@ -190,6 +202,18 @@
       "item": "Agent page renders",
       "verified_at": "2026-02-07T21:00:00Z",
       "result": "HTTP 200 at /deals/[dealId]/agent"
+    },
+    {
+      "phase": 8,
+      "item": "22 skill files with YAML frontmatter",
+      "verified_at": "2026-02-07T22:00:00Z",
+      "result": "10 domain + 6 process + 6 meta, avg 147 lines"
+    },
+    {
+      "phase": 8,
+      "item": "Skill loader and registry",
+      "verified_at": "2026-02-07T22:00:00Z",
+      "result": "18K chars loaded, 5 skills found for drafting, 6 for DD"
     }
   ],
   "session_history": [
@@ -247,7 +271,12 @@
       "session_id": "s-07-session1",
       "started_at": "2026-02-07T20:00:00Z",
       "steps_completed": ["7.1", "7.2", "7.3", "7.4", "7.5", "7.6", "7.7", "7.8", "7.9"]
+    },
+    {
+      "session_id": "s-08-session1",
+      "started_at": "2026-02-07T21:00:00Z",
+      "steps_completed": ["8.1", "8.2", "8.3", "8.4", "8.5", "8.6", "8.7", "8.8", "8.9"]
     }
   ],
-  "notes": "Phase 7 COMPLETE. Agent layer: Manager Agent (context loader, system prompt, activation, briefing), 5 Specialist configs (drafter, analyst, negotiation, email, closing), System Expert, Chat API + UI. All 15 tests pass. Ready for Phase 8."
+  "notes": "Phase 8 COMPLETE. 22 skill files (10 domain, 6 process, 6 meta), skill loader + registry, specialist integration. Migration 013 needs Supabase Dashboard creation. Ready for Phase 9."
 }
