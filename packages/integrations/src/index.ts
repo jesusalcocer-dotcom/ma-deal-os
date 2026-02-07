@@ -12,3 +12,7 @@ export { scoreFormulation } from './precedent/quality-scorer';
 export type { QualityScores } from './precedent/quality-scorer';
 export { searchPrecedent } from './precedent/quality-retrieval';
 export type { PrecedentSearchParams, PrecedentResult } from './precedent/quality-retrieval';
+export { searchEdgar, downloadExhibit } from './precedent/edgar-discovery';
+export type { EdgarSearchParams, EdgarFiling, EdgarExhibit } from './precedent/edgar-discovery';
+export { ingestFromEdgar } from './precedent/edgar-ingestion';
+export type { IngestionResult, IngestionConfig } from './precedent/edgar-ingestion';
