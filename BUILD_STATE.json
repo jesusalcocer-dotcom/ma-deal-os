@@ -1,6 +1,6 @@
 {
-  "current_phase": 15,
+  "current_phase": 16,
   "current_step": 1,
-  "current_step_name": "Create learning database tables",
-  "phase_title": "Learning Infrastructure — Database + Configuration + Model Routing"
+  "current_step_name": "Signal Collection Infrastructure",
+  "phase_title": "Signal Collection — Self-Evaluation + Consistency Checks + Outcome Tracking"
 }
