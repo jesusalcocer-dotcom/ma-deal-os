@@ -22,6 +22,7 @@ export const deals = pgTable('deals', {
   actual_signing_date: date('actual_signing_date'),
   actual_closing_date: date('actual_closing_date'),
   lead_attorney_id: uuid('lead_attorney_id').references(() => users.id),
+  monitoring_level: text('monitoring_level').notNull().default('active'),
   created_by: uuid('created_by').references(() => users.id),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),

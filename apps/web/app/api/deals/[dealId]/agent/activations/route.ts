@@ -26,6 +26,10 @@ export async function GET(
     const { data, error, count } = await query;
 
     if (error) {
+      // Table may not exist yet - return empty result
+      if (error.message?.includes('agent_activations')) {
+        return NextResponse.json({ activations: [], total: 0, limit, offset });
+      }
       console.error('Failed to fetch activations:', error);
       return NextResponse.json({ error: 'Failed to fetch activations' }, { status: 500 });
     }

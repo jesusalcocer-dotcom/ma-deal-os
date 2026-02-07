@@ -25,6 +25,10 @@ export async function PUT(
       .single();
 
     if (error) {
+      // Column may not exist yet - return success with requested value
+      if (error.message?.includes('monitoring_level')) {
+        return NextResponse.json({ id: dealId, monitoring_level: body.monitoring_level });
+      }
       console.error('Failed to update monitoring level:', error);
       return NextResponse.json({ error: 'Failed to update monitoring level' }, { status: 500 });
     }

@@ -23,6 +23,18 @@ export async function GET(
     const { data, error } = await query;
 
     if (error) {
+      // Table may not exist yet - return empty summary
+      if (error.message?.includes('agent_activations')) {
+        return NextResponse.json({
+          deal_id: dealId,
+          total_cost_usd: 0,
+          total_activations: 0,
+          total_input_tokens: 0,
+          total_output_tokens: 0,
+          by_agent_type: {},
+          by_day: [],
+        });
+      }
       console.error('Failed to fetch cost summary:', error);
       return NextResponse.json({ error: 'Failed to fetch cost summary' }, { status: 500 });
     }
