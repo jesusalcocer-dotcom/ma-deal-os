@@ -364,6 +364,26 @@ function triggerSelfEvaluation(
             // Exemplar storage is non-critical
           }
         }
+
+        // Shadow testing: if model is Opus and shadow is enabled, run Sonnet in parallel
+        if (params.model.includes('opus')) {
+          try {
+            const { ShadowRunner } = await import('../../distillation/shadow-runner');
+            const shadow = new ShadowRunner(supabase);
+            const enabled = await shadow.isShadowEnabled(params.agentType);
+            if (enabled) {
+              shadow.runShadow({
+                taskType: params.agentType,
+                prompt: params.output.substring(0, 5000),
+                opusOutput: params.output,
+                opusScore: evaluation.overallScore,
+                dealId: params.dealId,
+              }).catch(() => { /* shadow test is non-critical */ });
+            }
+          } catch {
+            // Shadow runner is non-critical
+          }
+        }
       });
     })
     .catch((err: unknown) => {

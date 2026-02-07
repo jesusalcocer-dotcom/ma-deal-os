@@ -41,4 +41,5 @@ export type { ModelSelection, DealContext, RoutingConfig, ModelTier, NoveltyFact
 export { MODEL_IDS } from './routing/types';
 export { calculateNoveltyScore } from './routing/novelty-scorer';
 export { DistillationTrialRunner } from './distillation/trial-runner';
+export { ShadowRunner } from './distillation/shadow-runner';
 export type { DistillationTrialResult, TrialDetail, ShadowTestResult, SpotCheckResult } from './distillation/types';

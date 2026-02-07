@@ -244,6 +244,26 @@ function triggerSpecialistEvaluation(
           // Exemplar storage is non-critical
         }
       }
+
+      // Shadow testing: if Opus and shadow enabled, run Sonnet in parallel
+      if (modelUsed.includes('opus')) {
+        try {
+          const { ShadowRunner } = await import('../../distillation/shadow-runner');
+          const shadow = new ShadowRunner(sb);
+          const enabled = await shadow.isShadowEnabled(taskType);
+          if (enabled) {
+            shadow.runShadow({
+              taskType,
+              prompt: output.substring(0, 5000),
+              opusOutput: output,
+              opusScore: evaluation.overallScore,
+              dealId,
+            }).catch(() => { /* shadow test is non-critical */ });
+          }
+        } catch {
+          // Shadow runner is non-critical
+        }
+      }
     });
   }).catch((err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
