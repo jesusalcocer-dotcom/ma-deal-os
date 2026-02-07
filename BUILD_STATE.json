@@ -2,8 +2,8 @@
   "version": "2.0",
   "project": "ma-deal-os",
   "current_phase": 4,
-  "current_step": 6,
-  "current_step_name": "Agent Management API Routes",
+  "current_step": 7,
+  "current_step_name": "Approval Queue Web UI",
   "phase_title": "Approval Policies + Constitutional Constraints",
   "completed_phases": [
     {
@@ -31,10 +31,10 @@
       "test_report": "docs/test-results/phase3_test_report.md"
     }
   ],
-  "last_completed_step": "4.5",
-  "last_completed_at": "2026-02-07T10:30:00Z",
-  "last_commit": "e7935d4",
-  "total_commits_this_session": 3,
+  "last_completed_step": "4.6",
+  "last_completed_at": "2026-02-07T14:00:00Z",
+  "last_commit": "d2adac0",
+  "total_commits_this_session": 1,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -56,6 +56,12 @@
       "item": "agent_activations table needs creation via Supabase Dashboard - trackActivation untested against DB",
       "severity": "HIGH",
       "impact": "Cost calculation logic verified (4/4 tests pass); DB operations need table"
+    },
+    {
+      "phase": 4,
+      "item": "deals.monitoring_level column needs creation via Supabase Dashboard (migration 006)",
+      "severity": "HIGH",
+      "impact": "PUT endpoint returns fallback response; column needed for full functionality"
     }
   ],
   "session_history": [
@@ -88,7 +94,12 @@
       "session_id": "s-04-session2",
       "started_at": "2026-02-07T10:00:00Z",
       "steps_completed": ["4.4", "4.5"]
+    },
+    {
+      "session_id": "s-04-session3",
+      "started_at": "2026-02-07T14:00:00Z",
+      "steps_completed": ["4.6"]
     }
   ],
-  "notes": "Phase 4 in progress. Steps 4.1-4.5 complete. Two tables need Supabase Dashboard creation: approval_policies (004) and agent_activations (005). Next: Step 4.6 Agent Management API Routes."
+  "notes": "Phase 4 in progress. Steps 4.1-4.6 complete. Three tables/columns need Supabase Dashboard creation: approval_policies (004), agent_activations (005), deals.monitoring_level (006). Next: Step 4.7 Approval Queue Web UI."
 }
