@@ -2,8 +2,8 @@
   "version": "2.0",
   "project": "ma-deal-os",
   "current_phase": 4,
-  "current_step": 1,
-  "current_step_name": "Approval Policy Schema and Defaults",
+  "current_step": 5,
+  "current_step_name": "Agent Activations Table + Cost Tracking",
   "phase_title": "Approval Policies + Constitutional Constraints",
   "completed_phases": [
     {
@@ -31,10 +31,10 @@
       "test_report": "docs/test-results/phase3_test_report.md"
     }
   ],
-  "last_completed_step": "3.11",
-  "last_completed_at": "2026-02-07T06:00:00Z",
-  "last_commit": "",
-  "total_commits_this_session": 0,
+  "last_completed_step": "4.4",
+  "last_completed_at": "2026-02-07T10:00:00Z",
+  "last_commit": "db43cbb",
+  "total_commits_this_session": 1,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -44,6 +44,12 @@
       "item": "Google Drive upload - container environment blocks OAuth",
       "severity": "MEDIUM",
       "impact": "Code is correct, cannot verify in this environment"
+    },
+    {
+      "phase": 4,
+      "item": "approval_policies table needs creation via Supabase Dashboard - PUT endpoint untested",
+      "severity": "HIGH",
+      "impact": "GET falls back to default policy correctly; PUT requires table to exist"
     }
   ],
   "session_history": [
@@ -66,7 +72,17 @@
       "session_id": "s-03-session4",
       "started_at": "2026-02-07T06:00:00Z",
       "steps_completed": ["3.10", "3.11"]
+    },
+    {
+      "session_id": "s-04-session1",
+      "started_at": "2026-02-07T08:00:00Z",
+      "steps_completed": ["4.1", "4.2", "4.3"]
+    },
+    {
+      "session_id": "s-04-session2",
+      "started_at": "2026-02-07T10:00:00Z",
+      "steps_completed": ["4.4"]
     }
   ],
-  "notes": "Phase 3 COMPLETE. 11/11 tests passing, 21/21 integration tests passing. MCP server with 9 tools, EventBus, 6 consequence maps, 3 event tables, 2 event API routes. Starting Phase 4."
+  "notes": "Phase 4 in progress. Steps 4.1-4.4 complete. Approval policy API routes done. approval_policies table needs Supabase Dashboard creation (SQL: scripts/migrations/004-approval-policies-table.sql). Next: Step 4.5 Agent Activations + Cost Tracking."
 }
