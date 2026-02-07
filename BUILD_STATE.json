@@ -1,12 +1,10 @@
 {
   "version": "2.0",
   "project": "ma-deal-os",
-
   "current_phase": 3,
   "current_step": 2,
   "current_step_name": "Deal Operations MCP Tools",
   "phase_title": "MCP Infrastructure + Event Backbone",
-
   "completed_phases": [
     {
       "phase": 0,
@@ -27,15 +25,12 @@
       "test_report": "docs/test-results/phase2_test_report.md"
     }
   ],
-
   "last_completed_step": "3.1",
   "last_completed_at": "2026-02-07T02:40:00Z",
   "last_commit": "9a4457b",
   "total_commits_this_session": 1,
-
   "attempts_on_current_step": 0,
   "max_attempts": 3,
-
   "blocking_issues": [],
   "deferred_items": [
     {
@@ -45,14 +40,27 @@
       "impact": "Code is correct, cannot verify in this environment"
     }
   ],
-
   "session_history": [
     {
       "session_id": "s-03-20260206-213854-a49117",
       "started_at": "2026-02-07T02:38:00Z",
-      "steps_completed": ["3.1"]
+      "steps_completed": [
+        "3.1"
+      ]
+    },
+    {
+      "session_id": "s-03-20260206-213854-a49117",
+      "phase": 3,
+      "step": 2,
+      "current_phase": 3,
+      "current_step": 2,
+      "status": "advanced",
+      "commits": 2,
+      "duration_seconds": 454.8,
+      "estimated_cost_usd": 0.91,
+      "started_at": "2026-02-07T03:38:54.945188+00:00",
+      "finished_at": "2026-02-07T03:46:29.785061+00:00"
     }
   ],
-
   "notes": "Phase 3 in progress. Step 3.1 complete: MCP server builds with deal tools (get_deal_state, list_deals). Fixed @ma-deal-os/ai missing @types/node."
 }
