@@ -18,3 +18,30 @@
 [23:28:33] [RUNNER]   Supervisor: enabled
 [23:28:33] [RUNNER] ==================================================
 [23:28:33] [RUNNER] Starting Build Agent...
+[23:33:00] [WARN] build process died on start (attempt 1)
+[23:33:00] [RUNNER] Retrying in 30s...
+[23:44:53] [RUNNER] Running pre-flight checks...
+[23:44:53] [OK] Environment variables present
+[23:44:53] [OK] Required tools available
+[23:44:53] [OK] Node.js v22.12.0
+[23:44:54] [OK] Supabase connection verified
+[23:44:54] [OK] Pre-flight checks passed. Dry run — not launching.
+[23:44:54] [RUNNER] Would start at Phase 3, Step 3
+[23:45:09] [RUNNER] Running pre-flight checks...
+[23:45:09] [OK] Environment variables present
+[23:45:09] [OK] Required tools available
+[23:45:09] [OK] Node.js v22.12.0
+[23:45:09] [OK] Supabase connection verified
+[23:45:10] [RUNNER] ==================================================
+[23:45:10] [RUNNER]   M&A DEAL OS — AUTONOMOUS BUILD V2
+[23:45:10] [RUNNER]   Starting Phase 3, Step 3
+[23:45:10] [RUNNER]   Model: claude-opus-4-6
+[23:45:10] [RUNNER]   Max turns: 50
+[23:45:10] [RUNNER]   Max cost: $200.00
+[23:45:10] [RUNNER]   Supervisor: enabled
+[23:45:10] [RUNNER] ==================================================
+[23:45:10] [RUNNER] Starting Build Agent...
+[23:45:11] [WARN] Subprocess stderr: Error: When using --print, --output-format=stream-json requires --verbose
+
+[23:45:11] [WARN] build process died on start (attempt 1)
+[23:45:11] [RUNNER] Retrying in 30s...

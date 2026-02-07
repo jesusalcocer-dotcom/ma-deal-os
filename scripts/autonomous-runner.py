@@ -374,7 +374,7 @@ class AgentSession:
         return [
             "--dangerously-skip-permissions",
             "--model", self.model,
-            "--output-format", "stream-json",
+            "--output-format", "stream-json", "--verbose",
         ]
 
     def start(self, on_line=None) -> dict:
