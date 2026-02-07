@@ -2,8 +2,8 @@
   "version": "2.0",
   "project": "ma-deal-os",
   "current_phase": 4,
-  "current_step": 7,
-  "current_step_name": "Approval Queue Web UI",
+  "current_step": 8,
+  "current_step_name": "Integration Test — Full Approval Flow",
   "phase_title": "Approval Policies + Constitutional Constraints",
   "completed_phases": [
     {
@@ -31,10 +31,10 @@
       "test_report": "docs/test-results/phase3_test_report.md"
     }
   ],
-  "last_completed_step": "4.6",
-  "last_completed_at": "2026-02-07T14:00:00Z",
-  "last_commit": "d2adac0",
-  "total_commits_this_session": 1,
+  "last_completed_step": "4.7",
+  "last_completed_at": "2026-02-07T14:30:00Z",
+  "last_commit": "9597e6f",
+  "total_commits_this_session": 3,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -98,8 +98,8 @@
     {
       "session_id": "s-04-session3",
       "started_at": "2026-02-07T14:00:00Z",
-      "steps_completed": ["4.6"]
+      "steps_completed": ["4.6", "4.7"]
     }
   ],
-  "notes": "Phase 4 in progress. Steps 4.1-4.6 complete. Three tables/columns need Supabase Dashboard creation: approval_policies (004), agent_activations (005), deals.monitoring_level (006). Next: Step 4.7 Approval Queue Web UI."
+  "notes": "Phase 4 in progress. Steps 4.1-4.7 complete. Three tables/columns need Supabase Dashboard creation: approval_policies (004), agent_activations (005), deals.monitoring_level (006). Next: Step 4.8 Integration Test — Full Approval Flow."
 }
