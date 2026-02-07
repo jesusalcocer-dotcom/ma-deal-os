@@ -15,6 +15,11 @@ export function DealNav() {
     { href: `${base}/documents`, label: 'Documents' },
     { href: `${base}/diligence`, label: 'Diligence' },
     { href: `${base}/emails`, label: 'Emails' },
+    { href: `${base}/disclosure-schedules`, label: 'Disclosures' },
+    { href: `${base}/negotiation`, label: 'Negotiation' },
+    { href: `${base}/closing`, label: 'Closing' },
+    { href: `${base}/client`, label: 'Client' },
+    { href: `${base}/third-parties`, label: 'Third Parties' },
     { href: `${base}/settings`, label: 'Settings' },
   ];
 
