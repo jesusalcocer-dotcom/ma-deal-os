@@ -910,3 +910,44 @@ Now let me test the defaults endpoint via dev server.
 The build passes, the GET endpoints work correctly, and the PUT endpoint logic is correct but needs the table. Per the protocol, this is a non-critical issue — I'll flag it and advance. Let me kill the dev server, commit, and move on.
 [00:54:29] [BUILD] [tool: Bash]
 [00:54:32] [BUILD] [tool: Bash]
+[00:54:37] [BUILD] [tool: Bash]
+[00:54:42] [BUILD] Good. Now update BUILD_STATE.json and advance to Step 4.5.
+[00:54:57] [BUILD] [tool: Write]
+[00:55:01] [BUILD] [tool: Bash]
+[00:55:07] [BUILD] Now moving to **Step 4.5: Agent Activations Table + Cost Tracking**.
+[00:55:10] [BUILD] [tool: TodoWrite]
+[00:55:14] [BUILD] Per the skill file, Step 4.5 needs:
+1. `packages/db/src/schema/agent-activations.ts` — Drizzle schema
+2. `packages/core/src/agents/cost-tracker.ts` — Cost tracking utility
+3. SQL migration for the table
+
+Let me check existing patterns first.
+[00:55:15] [BUILD] [tool: Read]
+[00:55:15] [BUILD] [tool: Read]
+[00:55:18] [BUILD] Good, I see the pattern clearly. Now let me also check the core barrel and existing agent directory.
+[00:55:19] [BUILD] [tool: Read]
+[00:55:19] [BUILD] [tool: Glob]
+[00:55:22] [BUILD] No agents directory yet. Let me create all three files in parallel: the Drizzle schema, the cost tracker, and the SQL migration.
+[00:55:28] [BUILD] [tool: Write]
+[00:55:28] [BUILD] [tool: Bash]
+[00:55:49] [BUILD] [tool: Write]
+[00:55:52] [BUILD] [tool: Write]
+[00:55:55] [BUILD] Now update the barrel exports — 3 places in db/index.ts and 1 in core/index.ts.
+[00:55:56] [BUILD] [tool: Edit]
+[00:56:00] [BUILD] [tool: Read]
+[00:56:03] [BUILD] [tool: Edit]
+[00:56:07] [BUILD] [tool: Edit]
+[00:56:12] [BUILD] [tool: Edit]
+[00:56:15] [BUILD] Now update the core barrel export.
+[00:56:15] [BUILD] [tool: Read]
+[00:56:19] [BUILD] [tool: Edit]
+[00:56:21] [BUILD] Now build to verify.
+[00:56:22] [BUILD] [tool: Bash]
+[00:56:51] [BUILD] All 6 packages built successfully. Now let me test the cost calculation logic.
+[00:56:59] [BUILD] [tool: Write]
+[00:57:02] [BUILD] [tool: Bash]
+[00:57:06] [BUILD] All cost calculation tests pass. Now let me check if the `agent_activations` table exists (likely not yet, like the `approval_policies` table).
+[00:57:10] [BUILD] [tool: Write]
+[00:57:14] [BUILD] [tool: Bash]
+[00:57:18] [BUILD] As expected — the table needs to be created by the user. Build passes, cost calculation tests pass. Let me commit and advance.
+[00:57:19] [BUILD] [tool: Bash]
