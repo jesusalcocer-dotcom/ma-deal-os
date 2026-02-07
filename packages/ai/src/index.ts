@@ -21,6 +21,8 @@ export { runDealPostMortem } from './pipelines/deal-post-mortem';
 export type { PostMortemResult } from './pipelines/deal-post-mortem';
 export * from './agents';
 export { loadSkills, findApplicableSkills } from './skills';
+export { EVALUATOR_RUBRICS, calculateWeightedScore } from './evaluation/rubrics';
+export type { EvaluatorRubric, EvaluatorCriterion, CriterionScore, SelfEvaluation, ConsistencyResult, OutcomeSignal } from './evaluation/types';
 export { ModelRouter } from './routing/model-router';
 export type { ModelSelection, DealContext, RoutingConfig, ModelTier, NoveltyFactors } from './routing/types';
 export { MODEL_IDS } from './routing/types';
