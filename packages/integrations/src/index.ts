@@ -6,3 +6,5 @@ export { generateDocxFromContent, generateDocxFromText } from './documents/docx-
 export { segmentDocument } from './documents/provision-segmenter';
 export type { DocumentContent } from './documents/docx-writer';
 export type { ProvisionSegment } from './documents/provision-segmenter';
+export { identifyFirm } from './precedent/firm-identifier';
+export type { FirmIdentificationResult } from './precedent/firm-identifier';
