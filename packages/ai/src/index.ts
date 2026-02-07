@@ -55,3 +55,7 @@ export { DealIntelligenceService } from './communication/deal-intelligence';
 export type { DealIntelligenceRecord } from './communication/deal-intelligence';
 export { AgentRequestService } from './communication/agent-requests';
 export type { AgentRequest } from './communication/agent-requests';
+export { MetaAgent } from './agents/meta/meta-agent';
+export type { MetaIntervention, MetaAction, EscalationOption } from './agents/meta/meta-agent';
+export { TriggerDetector } from './agents/meta/trigger-detector';
+export type { MetaTrigger } from './agents/meta/trigger-detector';
