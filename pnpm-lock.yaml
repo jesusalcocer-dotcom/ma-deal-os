@@ -132,6 +132,9 @@ importers:
       '@ma-deal-os/db':
         specifier: workspace:*
         version: link:../db
+      '@supabase/supabase-js':
+        specifier: ^2.95.3
+        version: 2.95.3
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
