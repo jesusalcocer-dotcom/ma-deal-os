@@ -20,3 +20,5 @@ export * from './types/constitution';
 export * from './types/simulation';
 export { SimulationClock } from './simulation/simulation-clock';
 export { SimulationManager } from './simulation/simulation-manager';
+export { seedScenario } from './simulation/scenario-seeder';
+export type { ScenarioContext } from './simulation/scenario-seeder';

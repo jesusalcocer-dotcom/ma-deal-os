@@ -1,0 +1,187 @@
+{
+  "simulation": "DataFlow Analytics Acquisition",
+  "vdr_provider": "Intralinks",
+  "total_documents": 78,
+  "categories": [
+    {
+      "name": "01 - Corporate",
+      "documents": [
+        { "id": "VDR-001", "name": "Certificate of Incorporation", "type": "pdf", "pages": 4 },
+        { "id": "VDR-002", "name": "Bylaws (as amended)", "type": "pdf", "pages": 12 },
+        { "id": "VDR-003", "name": "Board Resolutions - 2024-2025", "type": "pdf", "pages": 8 },
+        { "id": "VDR-004", "name": "Stockholder Agreement", "type": "pdf", "pages": 15 },
+        { "id": "VDR-005", "name": "Cap Table - Fully Diluted", "type": "xlsx", "pages": 3 },
+        { "id": "VDR-006", "name": "Organizational Chart", "type": "pdf", "pages": 2 },
+        { "id": "VDR-007", "name": "State Registrations and Qualifications", "type": "pdf", "pages": 6 }
+      ]
+    },
+    {
+      "name": "02 - Financial",
+      "documents": [
+        { "id": "VDR-010", "name": "Audited Financial Statements - 2023", "type": "pdf", "pages": 35 },
+        { "id": "VDR-011", "name": "Audited Financial Statements - 2024", "type": "pdf", "pages": 38 },
+        { "id": "VDR-012", "name": "Unaudited Financial Statements - 2025 YTD", "type": "pdf", "pages": 12 },
+        { "id": "VDR-013", "name": "Revenue Breakdown by Customer - 3 Years", "type": "xlsx", "pages": 5 },
+        { "id": "VDR-014", "name": "Monthly P&L - Trailing 24 Months", "type": "xlsx", "pages": 4 },
+        { "id": "VDR-015", "name": "Working Capital Analysis", "type": "xlsx", "pages": 3 },
+        { "id": "VDR-016", "name": "Debt Schedule", "type": "pdf", "pages": 2 },
+        { "id": "VDR-017", "name": "Tax Returns - Federal - 2022-2024", "type": "pdf", "pages": 45 },
+        { "id": "VDR-018", "name": "Tax Returns - State - 2022-2024", "type": "pdf", "pages": 30 },
+        { "id": "VDR-019", "name": "Meridian Corp - Multi-Year Contract and Revenue Memo", "type": "pdf", "pages": 8 }
+      ]
+    },
+    {
+      "name": "03 - Contracts",
+      "documents": [
+        { "id": "VDR-020", "name": "Customer Agreement - Meridian Corp (Top Customer)", "type": "pdf", "pages": 22 },
+        { "id": "VDR-021", "name": "Customer Agreement - TechVentures Inc", "type": "pdf", "pages": 18 },
+        { "id": "VDR-022", "name": "Customer Agreement - Global Dynamics", "type": "pdf", "pages": 16 },
+        { "id": "VDR-023", "name": "Customer Agreement - Pinnacle Health Systems", "type": "pdf", "pages": 20 },
+        { "id": "VDR-024", "name": "Customer Agreement - Forge Manufacturing", "type": "pdf", "pages": 15 },
+        { "id": "VDR-025", "name": "Summary of All Customer Contracts", "type": "xlsx", "pages": 6 },
+        { "id": "VDR-026", "name": "Vendor Agreement - AWS Cloud Services", "type": "pdf", "pages": 14 },
+        { "id": "VDR-027", "name": "Vendor Agreement - Salesforce", "type": "pdf", "pages": 10 },
+        { "id": "VDR-028", "name": "Office Lease - San Francisco HQ", "type": "pdf", "pages": 25 },
+        { "id": "VDR-029", "name": "Office Lease - Austin Engineering Office", "type": "pdf", "pages": 18 }
+      ]
+    },
+    {
+      "name": "04 - Employees",
+      "documents": [
+        { "id": "VDR-030", "name": "Employee Census with Compensation", "type": "xlsx", "pages": 4 },
+        { "id": "VDR-031", "name": "Employee Handbook", "type": "pdf", "pages": 42 },
+        { "id": "VDR-032", "name": "Benefit Plans Summary", "type": "pdf", "pages": 15 },
+        { "id": "VDR-033", "name": "401k Plan Document", "type": "pdf", "pages": 28 },
+        { "id": "VDR-034", "name": "Equity Incentive Plan", "type": "pdf", "pages": 18 },
+        { "id": "VDR-035", "name": "Executive Employment Agreements", "type": "pdf", "pages": 35 },
+        { "id": "VDR-036", "name": "Independent Contractor Agreements (15 contractors)", "type": "pdf", "pages": 45 },
+        { "id": "VDR-037", "name": "Independent Contractor Classification Analysis", "type": "pdf", "pages": 3 },
+        { "id": "VDR-038", "name": "Workers Compensation History", "type": "pdf", "pages": 4 },
+        { "id": "VDR-039", "name": "EEOC/Discrimination Claims History", "type": "pdf", "pages": 2 }
+      ]
+    },
+    {
+      "name": "05 - Intellectual Property",
+      "documents": [
+        { "id": "VDR-040", "name": "IP Assignment Agreements - All Employees", "type": "pdf", "pages": 60 },
+        { "id": "VDR-041", "name": "Trademark Registrations", "type": "pdf", "pages": 5 },
+        { "id": "VDR-042", "name": "Provisional Patent Application - Predictive Model", "type": "pdf", "pages": 22 },
+        { "id": "VDR-043", "name": "Open Source Component Audit Report", "type": "pdf", "pages": 12 },
+        { "id": "VDR-044", "name": "Software License Inventory", "type": "xlsx", "pages": 3 },
+        { "id": "VDR-045", "name": "Domain Name Registrations", "type": "pdf", "pages": 2 },
+        { "id": "VDR-046", "name": "Source Code Repository Access Summary", "type": "pdf", "pages": 3 }
+      ]
+    },
+    {
+      "name": "06 - Privacy & Security",
+      "documents": [
+        { "id": "VDR-050", "name": "Privacy Policy (Current)", "type": "pdf", "pages": 8 },
+        { "id": "VDR-051", "name": "Data Processing Agreements", "type": "pdf", "pages": 20 },
+        { "id": "VDR-052", "name": "SOC 2 Type II Report - 2024", "type": "pdf", "pages": 45 },
+        { "id": "VDR-053", "name": "Security Incident Log - 3 Years", "type": "pdf", "pages": 5 },
+        { "id": "VDR-054", "name": "GDPR Compliance Assessment", "type": "pdf", "pages": 12 },
+        { "id": "VDR-055", "name": "CCPA Data Mapping", "type": "pdf", "pages": 8 }
+      ]
+    },
+    {
+      "name": "07 - Tax",
+      "documents": [
+        { "id": "VDR-060", "name": "Tax Opinions and Rulings", "type": "pdf", "pages": 10 },
+        { "id": "VDR-061", "name": "Sales Tax Nexus Analysis", "type": "pdf", "pages": 8 },
+        { "id": "VDR-062", "name": "R&D Tax Credit Documentation", "type": "pdf", "pages": 15 },
+        { "id": "VDR-063", "name": "Transfer Pricing Documentation", "type": "pdf", "pages": 6 },
+        { "id": "VDR-064", "name": "Pending Tax Audits or Inquiries", "type": "pdf", "pages": 3 }
+      ]
+    },
+    {
+      "name": "08 - Litigation & Regulatory",
+      "documents": [
+        { "id": "VDR-070", "name": "Pending Litigation Summary", "type": "pdf", "pages": 4 },
+        { "id": "VDR-071", "name": "Resolved Litigation - Past 5 Years", "type": "pdf", "pages": 6 },
+        { "id": "VDR-072", "name": "Regulatory Correspondence", "type": "pdf", "pages": 8 },
+        { "id": "VDR-073", "name": "Insurance Policies Summary", "type": "pdf", "pages": 10 },
+        { "id": "VDR-074", "name": "D&O Insurance Policy", "type": "pdf", "pages": 15 }
+      ]
+    },
+    {
+      "name": "09 - Environmental",
+      "documents": [
+        { "id": "VDR-075", "name": "Environmental Compliance Certificate", "type": "pdf", "pages": 2 },
+        { "id": "VDR-076", "name": "Phase I ESA - SF Office", "type": "pdf", "pages": 20 }
+      ]
+    },
+    {
+      "name": "10 - Miscellaneous",
+      "documents": [
+        { "id": "VDR-077", "name": "Government Contracts Summary", "type": "pdf", "pages": 3 },
+        { "id": "VDR-078", "name": "Export Control Classification", "type": "pdf", "pages": 2 }
+      ]
+    }
+  ],
+  "seeded_issues": [
+    {
+      "id": "ISSUE-01",
+      "category": "employment",
+      "severity": "high",
+      "description": "15 independent contractors likely misclassified. Tenures of 1-3 years, dedicated work patterns, company-provided tools in some cases.",
+      "discovery_trigger": "Review of VDR-036 and VDR-037",
+      "estimated_exposure": "$2,500,000"
+    },
+    {
+      "id": "ISSUE-02",
+      "category": "financial",
+      "severity": "medium",
+      "description": "Meridian Corp multi-year contract revenue recognition may not comply with ASC 606. Appears to front-load revenue from a 3-year commitment.",
+      "discovery_trigger": "Review of VDR-019 and VDR-010",
+      "estimated_exposure": "$1,200,000"
+    },
+    {
+      "id": "ISSUE-03",
+      "category": "ip",
+      "severity": "medium",
+      "description": "Two early employees (2018-2019) lack properly executed IP assignment agreements. Both contributed to core analytics engine.",
+      "discovery_trigger": "Review of VDR-040",
+      "estimated_exposure": "$500,000"
+    },
+    {
+      "id": "ISSUE-04",
+      "category": "contracts",
+      "severity": "low",
+      "description": "Top customer (Meridian Corp) has 60-day termination for convenience clause. Represents 22% of revenue.",
+      "discovery_trigger": "Review of VDR-020 and VDR-013",
+      "estimated_exposure": "Revenue risk, not direct cost"
+    },
+    {
+      "id": "ISSUE-05",
+      "category": "tax",
+      "severity": "medium",
+      "description": "Sales tax nexus in 3 states where company has not been collecting. Estimated back-tax liability.",
+      "discovery_trigger": "Review of VDR-061",
+      "estimated_exposure": "$350,000"
+    },
+    {
+      "id": "ISSUE-06",
+      "category": "privacy",
+      "severity": "high",
+      "description": "SOC 2 report notes 2 moderate findings not yet remediated. GDPR data processing agreements missing for 3 EU customers.",
+      "discovery_trigger": "Review of VDR-052 and VDR-054",
+      "estimated_exposure": "$200,000"
+    },
+    {
+      "id": "ISSUE-07",
+      "category": "ip",
+      "severity": "low",
+      "description": "Open source audit reveals one LGPL-licensed component in analytics engine. Requires careful linking analysis.",
+      "discovery_trigger": "Review of VDR-043",
+      "estimated_exposure": "Compliance cost only"
+    },
+    {
+      "id": "ISSUE-08",
+      "category": "litigation",
+      "severity": "low",
+      "description": "Former employee filed wrongful termination claim in 2024. Settled for $75K but release may not cover all claims.",
+      "discovery_trigger": "Review of VDR-071",
+      "estimated_exposure": "$100,000"
+    }
+  ]
+}
