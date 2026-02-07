@@ -35,5 +35,11 @@ export const provisionFormulations = pgTable('provision_formulations', {
   deal_size_range: text('deal_size_range'),
   industry: text('industry'),
   year: integer('year'),
+  firm_tier: decimal('firm_tier', { precision: 3, scale: 2 }),
+  deal_size_score: decimal('deal_size_score', { precision: 3, scale: 2 }),
+  recency_score: decimal('recency_score', { precision: 3, scale: 2 }),
+  structural_quality_score: decimal('structural_quality_score', { precision: 3, scale: 2 }),
+  corpus_alignment_score: decimal('corpus_alignment_score', { precision: 3, scale: 2 }),
+  composite_quality_score: decimal('composite_quality_score', { precision: 3, scale: 2 }),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
