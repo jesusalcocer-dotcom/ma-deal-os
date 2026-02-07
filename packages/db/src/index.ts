@@ -22,6 +22,7 @@ import * as observerChangelogSchema from './schema/observer-changelog';
 import * as feedbackSchema from './schema/feedback';
 import * as learningSignalsSchema from './schema/learning-signals';
 import * as learningPatternsSchema from './schema/learning-patterns';
+import * as learningCommunicationSchema from './schema/learning-communication';
 
 export const schema = {
   ...usersSchema,
@@ -46,6 +47,7 @@ export const schema = {
   ...feedbackSchema,
   ...learningSignalsSchema,
   ...learningPatternsSchema,
+  ...learningCommunicationSchema,
 };
 
 let db: ReturnType<typeof createDb> | null = null;
@@ -68,7 +70,7 @@ export function getDb() {
 
 export type Database = ReturnType<typeof getDb>;
 
-export { usersSchema, dealsSchema, checklistSchema, documentSchema, provisionSchema, ddSchema, emailSchema, driveSchema, propagationEventsSchema, actionChainsSchema, approvalPoliciesSchema, agentActivationsSchema, disclosureSchedulesSchema, negotiationSchema, thirdPartiesSchema, clientManagementSchema, closingSchema, skillsRegistrySchema, observerChangelogSchema, feedbackSchema, learningSignalsSchema, learningPatternsSchema };
+export { usersSchema, dealsSchema, checklistSchema, documentSchema, provisionSchema, ddSchema, emailSchema, driveSchema, propagationEventsSchema, actionChainsSchema, approvalPoliciesSchema, agentActivationsSchema, disclosureSchedulesSchema, negotiationSchema, thirdPartiesSchema, clientManagementSchema, closingSchema, skillsRegistrySchema, observerChangelogSchema, feedbackSchema, learningSignalsSchema, learningPatternsSchema, learningCommunicationSchema };
 export * from './schema/users';
 export * from './schema/deals';
 export * from './schema/checklist-items';
@@ -91,3 +93,4 @@ export * from './schema/observer-changelog';
 export * from './schema/feedback';
 export * from './schema/learning-signals';
 export * from './schema/learning-patterns';
+export * from './schema/learning-communication';
