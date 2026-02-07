@@ -8,3 +8,5 @@ export type { DocumentContent } from './documents/docx-writer';
 export type { ProvisionSegment } from './documents/provision-segmenter';
 export { identifyFirm } from './precedent/firm-identifier';
 export type { FirmIdentificationResult } from './precedent/firm-identifier';
+export { scoreFormulation } from './precedent/quality-scorer';
+export type { QualityScores } from './precedent/quality-scorer';
