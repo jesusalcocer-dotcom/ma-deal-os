@@ -1,10 +1,10 @@
 {
   "version": "2.0",
   "project": "ma-deal-os",
-  "current_phase": 5,
+  "current_phase": 6,
   "current_step": 1,
-  "current_step_name": "Pending — check skills/phase-05.md",
-  "phase_title": "Phase 5 (Next)",
+  "current_step_name": "Pending — check skills/phase-06.md",
+  "phase_title": "Phase 6 (Next)",
   "completed_phases": [
     {
       "phase": 0,
@@ -35,12 +35,18 @@
       "title": "Approval Policies + Constitutional Constraints",
       "completed_at": "2026-02-07T15:00:00Z",
       "test_report": "docs/test-results/phase4_test_report.md"
+    },
+    {
+      "phase": 5,
+      "title": "Disclosure Schedules, Negotiation State, Email Enhancement",
+      "completed_at": "2026-02-07T16:00:00Z",
+      "test_report": "docs/test-results/phase5_test_report.md"
     }
   ],
-  "last_completed_step": "4.8",
-  "last_completed_at": "2026-02-07T15:00:00Z",
-  "last_commit": "240b554",
-  "total_commits_this_session": 5,
+  "last_completed_step": "5.10",
+  "last_completed_at": "2026-02-07T16:00:00Z",
+  "last_commit": "eb35bb3",
+  "total_commits_this_session": 13,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -61,13 +67,37 @@
       "phase": 4,
       "item": "agent_activations table needs creation via Supabase Dashboard (migration 005)",
       "severity": "HIGH",
-      "impact": "Cost calculation logic verified (4/4 tests pass); DB operations need table"
+      "impact": "Cost tracking code verified; DB operations need table"
     },
     {
       "phase": 4,
       "item": "deals.monitoring_level column needs creation via Supabase Dashboard (migration 006)",
       "severity": "HIGH",
-      "impact": "PUT endpoint returns fallback response; column needed for full functionality"
+      "impact": "PUT returns fallback; column needed for persistence"
+    },
+    {
+      "phase": 5,
+      "item": "disclosure_schedules + disclosure_entries tables (migration 007)",
+      "severity": "HIGH",
+      "impact": "CRUD returns empty; generation can't persist"
+    },
+    {
+      "phase": 5,
+      "item": "negotiation_positions + negotiation_roadmaps tables (migration 008)",
+      "severity": "HIGH",
+      "impact": "Positions generated in-memory; not persisted"
+    },
+    {
+      "phase": 5,
+      "item": "deal_emails extracted_positions/extracted_action_items columns (migration 009)",
+      "severity": "HIGH",
+      "impact": "Extraction results can't be stored"
+    },
+    {
+      "phase": 5,
+      "item": "Anthropic API credits exhausted — AI pipelines untested live",
+      "severity": "HIGH",
+      "impact": "Position/action item extraction, disclosure generation, roadmap generation all build but can't call Claude"
     }
   ],
   "session_history": [
@@ -102,10 +132,10 @@
       "steps_completed": ["4.4", "4.5"]
     },
     {
-      "session_id": "s-04-session3",
+      "session_id": "s-04-05-session3",
       "started_at": "2026-02-07T14:00:00Z",
-      "steps_completed": ["4.6", "4.7", "4.8"]
+      "steps_completed": ["4.6", "4.7", "4.8", "5.1", "5.2", "5.3", "5.4", "5.5", "5.6", "5.7", "5.8", "5.9", "5.10"]
     }
   ],
-  "notes": "Phase 4 COMPLETE. All 8 steps done. Integration test 11/11 passing. 3 deferred HIGH items (DB tables need manual creation). Advancing to Phase 5."
+  "notes": "Phases 4-5 COMPLETE this session. 13 commits. Phase 4: 11/11 integration tests passing. Phase 5: 11/11 integration tests passing. Anthropic API credits exhausted — AI pipelines build but can't live-test. 6 DB migrations pending (004-009). Advancing to Phase 6."
 }
