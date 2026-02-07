@@ -17,3 +17,6 @@ export * from './data/spa-template';
 export * from './agents/cost-tracker';
 export * from './rules/negotiation-initializer';
 export * from './types/constitution';
+export * from './types/simulation';
+export { SimulationClock } from './simulation/simulation-clock';
+export { SimulationManager } from './simulation/simulation-manager';
