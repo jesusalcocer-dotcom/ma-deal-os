@@ -11,3 +11,5 @@ export { extractActionItems } from './pipelines/action-item-extractor';
 export type { ExtractedActionItem, ActionItemExtractionResult } from './pipelines/action-item-extractor';
 export { generateClientCommunication } from './pipelines/client-communication';
 export type { ClientCommunicationInput, ClientCommunicationResult } from './pipelines/client-communication';
+export { generateClosingChecklist } from './pipelines/closing-generator';
+export type { ClosingConditionExtraction, ClosingDeliverableExtraction, ClosingGenerationResult } from './pipelines/closing-generator';
