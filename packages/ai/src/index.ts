@@ -42,4 +42,5 @@ export { MODEL_IDS } from './routing/types';
 export { calculateNoveltyScore } from './routing/novelty-scorer';
 export { DistillationTrialRunner } from './distillation/trial-runner';
 export { ShadowRunner } from './distillation/shadow-runner';
+export { SpotChecker } from './distillation/spot-checker';
 export type { DistillationTrialResult, TrialDetail, ShadowTestResult, SpotCheckResult } from './distillation/types';
