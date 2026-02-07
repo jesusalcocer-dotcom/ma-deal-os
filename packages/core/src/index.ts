@@ -7,6 +7,8 @@ export * from './types/email';
 export * from './types/events';
 export * from './constants/deal-enums';
 export * from './rules/checklist-rules';
+export * from './rules/consequence-maps';
+export * from './events';
 export * from './utils/deal-utils';
 export * from './data/provision-taxonomy';
 export * from './data/spa-template';

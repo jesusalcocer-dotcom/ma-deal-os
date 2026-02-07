@@ -9,6 +9,10 @@
     "lint": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/node": "^25.2.1",
     "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.95.3"
   }
 }

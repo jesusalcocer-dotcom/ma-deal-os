@@ -141,7 +141,14 @@ importers:
         version: 5.9.3
 
   packages/core:
+    dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.95.3
+        version: 2.95.3
     devDependencies:
+      '@types/node':
+        specifier: ^25.2.1
+        version: 25.2.1
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -1282,6 +1289,9 @@ packages:
 
   '@types/node@24.10.11':
     resolution: {integrity: sha512-/Af7O8r1frCVgOz0I62jWUtMohJ0/ZQU/ZoketltOJPZpnb17yoNc9BSoVuV9qlaIXJiPNOpsfq4ByFajSArNQ==}
+
+  '@types/node@25.2.1':
+    resolution: {integrity: sha512-CPrnr8voK8vC6eEtyRzvMpgp3VyVRhgclonE7qYi6P9sXwYb59ucfrnmFBTaP0yUi8Gk4yZg/LlTJULGxvTNsg==}
 
   '@types/pdf-parse@1.1.5':
     resolution: {integrity: sha512-kBfrSXsloMnUJOKi25s3+hRmkycHfLK6A09eRGqF/N8BkQoPUmaCr+q8Cli5FnfohEz/rsv82zAiPz/LXtOGhA==}
@@ -3444,6 +3454,10 @@ snapshots:
       undici-types: 6.21.0
 
   '@types/node@24.10.11':
+    dependencies:
+      undici-types: 7.16.0
+
+  '@types/node@25.2.1':
     dependencies:
       undici-types: 7.16.0
 

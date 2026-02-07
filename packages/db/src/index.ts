@@ -8,6 +8,8 @@ import * as provisionSchema from './schema/provision-formulations';
 import * as ddSchema from './schema/dd-findings';
 import * as emailSchema from './schema/emails';
 import * as driveSchema from './schema/drive-sync';
+import * as propagationEventsSchema from './schema/propagation-events';
+import * as actionChainsSchema from './schema/action-chains';
 
 export const schema = {
   ...usersSchema,
@@ -18,6 +20,8 @@ export const schema = {
   ...ddSchema,
   ...emailSchema,
   ...driveSchema,
+  ...propagationEventsSchema,
+  ...actionChainsSchema,
 };
 
 let db: ReturnType<typeof createDb> | null = null;
@@ -40,7 +44,7 @@ export function getDb() {
 
 export type Database = ReturnType<typeof getDb>;
 
-export { usersSchema, dealsSchema, checklistSchema, documentSchema, provisionSchema, ddSchema, emailSchema, driveSchema };
+export { usersSchema, dealsSchema, checklistSchema, documentSchema, provisionSchema, ddSchema, emailSchema, driveSchema, propagationEventsSchema, actionChainsSchema };
 export * from './schema/users';
 export * from './schema/deals';
 export * from './schema/checklist-items';
@@ -49,3 +53,5 @@ export * from './schema/provision-formulations';
 export * from './schema/dd-findings';
 export * from './schema/emails';
 export * from './schema/drive-sync';
+export * from './schema/propagation-events';
+export * from './schema/action-chains';
