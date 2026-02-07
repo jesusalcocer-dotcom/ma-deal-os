@@ -2,8 +2,8 @@
   "version": "2.0",
   "project": "ma-deal-os",
   "current_phase": 4,
-  "current_step": 5,
-  "current_step_name": "Agent Activations Table + Cost Tracking",
+  "current_step": 6,
+  "current_step_name": "Agent Management API Routes",
   "phase_title": "Approval Policies + Constitutional Constraints",
   "completed_phases": [
     {
@@ -31,10 +31,10 @@
       "test_report": "docs/test-results/phase3_test_report.md"
     }
   ],
-  "last_completed_step": "4.4",
-  "last_completed_at": "2026-02-07T10:00:00Z",
-  "last_commit": "db43cbb",
-  "total_commits_this_session": 1,
+  "last_completed_step": "4.5",
+  "last_completed_at": "2026-02-07T10:30:00Z",
+  "last_commit": "e7935d4",
+  "total_commits_this_session": 3,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -50,6 +50,12 @@
       "item": "approval_policies table needs creation via Supabase Dashboard - PUT endpoint untested",
       "severity": "HIGH",
       "impact": "GET falls back to default policy correctly; PUT requires table to exist"
+    },
+    {
+      "phase": 4,
+      "item": "agent_activations table needs creation via Supabase Dashboard - trackActivation untested against DB",
+      "severity": "HIGH",
+      "impact": "Cost calculation logic verified (4/4 tests pass); DB operations need table"
     }
   ],
   "session_history": [
@@ -81,8 +87,8 @@
     {
       "session_id": "s-04-session2",
       "started_at": "2026-02-07T10:00:00Z",
-      "steps_completed": ["4.4"]
+      "steps_completed": ["4.4", "4.5"]
     }
   ],
-  "notes": "Phase 4 in progress. Steps 4.1-4.4 complete. Approval policy API routes done. approval_policies table needs Supabase Dashboard creation (SQL: scripts/migrations/004-approval-policies-table.sql). Next: Step 4.5 Agent Activations + Cost Tracking."
+  "notes": "Phase 4 in progress. Steps 4.1-4.5 complete. Two tables need Supabase Dashboard creation: approval_policies (004) and agent_activations (005). Next: Step 4.6 Agent Management API Routes."
 }
