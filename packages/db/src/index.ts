@@ -14,6 +14,7 @@ import * as approvalPoliciesSchema from './schema/approval-policies';
 import * as agentActivationsSchema from './schema/agent-activations';
 import * as disclosureSchedulesSchema from './schema/disclosure-schedules';
 import * as negotiationSchema from './schema/negotiation';
+import * as thirdPartiesSchema from './schema/third-parties';
 
 export const schema = {
   ...usersSchema,
@@ -30,6 +31,7 @@ export const schema = {
   ...agentActivationsSchema,
   ...disclosureSchedulesSchema,
   ...negotiationSchema,
+  ...thirdPartiesSchema,
 };
 
 let db: ReturnType<typeof createDb> | null = null;
@@ -52,7 +54,7 @@ export function getDb() {
 
 export type Database = ReturnType<typeof getDb>;
 
-export { usersSchema, dealsSchema, checklistSchema, documentSchema, provisionSchema, ddSchema, emailSchema, driveSchema, propagationEventsSchema, actionChainsSchema, approvalPoliciesSchema, agentActivationsSchema, disclosureSchedulesSchema, negotiationSchema };
+export { usersSchema, dealsSchema, checklistSchema, documentSchema, provisionSchema, ddSchema, emailSchema, driveSchema, propagationEventsSchema, actionChainsSchema, approvalPoliciesSchema, agentActivationsSchema, disclosureSchedulesSchema, negotiationSchema, thirdPartiesSchema };
 export * from './schema/users';
 export * from './schema/deals';
 export * from './schema/checklist-items';
@@ -67,3 +69,4 @@ export * from './schema/approval-policies';
 export * from './schema/agent-activations';
 export * from './schema/disclosure-schedules';
 export * from './schema/negotiation';
+export * from './schema/third-parties';
