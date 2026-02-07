@@ -14,6 +14,8 @@ export type { ClientCommunicationInput, ClientCommunicationResult } from './pipe
 export { generateClosingChecklist } from './pipelines/closing-generator';
 export type { ClosingConditionExtraction, ClosingDeliverableExtraction, ClosingGenerationResult } from './pipelines/closing-generator';
 export { encodeConstitution } from './pipelines/constitution-encoder';
+export { analyzeWhatsMarket } from './pipelines/whats-market';
+export type { WhatsMarketInput, WhatsMarketResult } from './pipelines/whats-market';
 export type { ConstitutionEncodingResult } from './pipelines/constitution-encoder';
 export * from './agents';
 export { loadSkills, findApplicableSkills } from './skills';
