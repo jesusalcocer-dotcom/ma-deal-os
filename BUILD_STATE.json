@@ -1,10 +1,10 @@
 {
   "version": "2.0",
   "project": "ma-deal-os",
-  "current_phase": 12,
+  "current_phase": 13,
   "current_step": 1,
-  "current_step_name": "Pending — check skills/phase-12.md",
-  "phase_title": "Phase 12 (Next)",
+  "current_step_name": "Pending — check skills/phase-13.md",
+  "phase_title": "Phase 13 (Next)",
   "completed_phases": [
     {
       "phase": 0,
@@ -77,12 +77,18 @@
       "title": "Observer, Coding Agent, Testing Agent",
       "completed_at": "2026-02-08T03:00:00Z",
       "test_report": "docs/test-results/phase11_test_report.md"
+    },
+    {
+      "phase": 12,
+      "title": "Simulation Framework",
+      "completed_at": "2026-02-08T04:00:00Z",
+      "test_report": "docs/test-results/phase12_test_report.md"
     }
   ],
-  "last_completed_step": "11.8",
-  "last_completed_at": "2026-02-08T03:00:00Z",
-  "last_commit": "5a375db",
-  "total_commits_this_session": 39,
+  "last_completed_step": "12.8",
+  "last_completed_at": "2026-02-08T04:00:00Z",
+  "last_commit": "3e768b7",
+  "total_commits_this_session": 45,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -352,7 +358,12 @@
       "session_id": "s-11-session1",
       "started_at": "2026-02-08T02:00:00Z",
       "steps_completed": ["11.1", "11.2", "11.3", "11.4", "11.5", "11.6", "11.7", "11.8"]
+    },
+    {
+      "session_id": "s-12-session1",
+      "started_at": "2026-02-08T03:00:00Z",
+      "steps_completed": ["12.1", "12.2", "12.3", "12.4", "12.5", "12.6", "12.7", "12.8"]
     }
   ],
-  "notes": "Phase 11 COMPLETE. Observer Agent (evaluation criteria, metrics collector, system prompt, observer-agent), Coding Agent + Testing Agent specialist configs, improvement loop (detect/diagnose/prescribe/implement), Observer API routes + dashboard. Migration 016 deferred. Ready for Phase 12."
+  "notes": "Phase 12 COMPLETE. Simulation framework: clock (real-time/compressed/skip-ahead), scenario seeding (term sheet + client instructions + VDR manifest with 8 seeded issues), client agents (seller CEO + buyer PE partner), third-party agents (escrow/R&W/accountant), simulation runner (9-phase deal lifecycle), evaluation report, simulation API routes + dashboard. Ready for Phase 13."
 }
