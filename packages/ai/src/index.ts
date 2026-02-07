@@ -27,6 +27,8 @@ export { buildEvaluatorPrompt } from './evaluation/evaluator-prompts';
 export { ConsistencyChecker } from './evaluation/consistency-checker';
 export type { ConsistencyCheckResult } from './evaluation/consistency-checker';
 export { OutcomeTracker } from './evaluation/outcome-tracker';
+export { LearningSpendTracker } from './evaluation/spend-tracker';
+export type { SpendCheck, SpendBehavior } from './evaluation/spend-tracker';
 export type { EvaluatorRubric, EvaluatorCriterion, CriterionScore, SelfEvaluation, ConsistencyResult, OutcomeSignal } from './evaluation/types';
 export { ModelRouter } from './routing/model-router';
 export type { ModelSelection, DealContext, RoutingConfig, ModelTier, NoveltyFactors } from './routing/types';
