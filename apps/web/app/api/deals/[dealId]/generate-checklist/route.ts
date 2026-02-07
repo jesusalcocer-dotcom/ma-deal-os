@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/supabase/server';
-import { deals, checklistItems } from '@ma-deal-os/db';
-import { eq } from 'drizzle-orm';
+import { supabase } from '@/lib/supabase/server';
 import { generateChecklistFromRules } from '@ma-deal-os/core';
 import type { DealParameters } from '@ma-deal-os/core';
 
 export async function POST(_req: NextRequest, { params }: { params: { dealId: string } }) {
   try {
     const { dealId } = await params;
-    const [deal] = await db().select().from(deals).where(eq(deals.id, dealId));
-    if (!deal) {
+    const { data: dealData, error: dealError } = await supabase()
+      .from('deals')
+      .select('*')
+      .eq('id', dealId)
+      .single();
+
+    if (dealError || !dealData) {
       return NextResponse.json({ error: 'Deal not found' }, { status: 404 });
     }
 
+    const deal = dealData as any;
     const dealParams = (deal.parameters || {}) as DealParameters;
     const items = generateChecklistFromRules(dealId, dealParams);
 
@@ -21,11 +25,22 @@ export async function POST(_req: NextRequest, { params }: { params: { dealId: st
     }
 
     // Clear existing deterministic items for regeneration
-    await db().delete(checklistItems).where(eq(checklistItems.deal_id, dealId));
+    const { error: deleteError } = await supabase()
+      .from('checklist_items')
+      .delete()
+      .eq('deal_id', dealId);
 
-    const inserted = await db().insert(checklistItems).values(items).returning();
+    if (deleteError) throw deleteError;
 
-    return NextResponse.json({ message: `Generated ${inserted.length} checklist items`, items: inserted });
+    // Insert new items
+    const { data: inserted, error: insertError } = await supabase()
+      .from('checklist_items')
+      .insert(items as any)
+      .select();
+
+    if (insertError) throw insertError;
+
+    return NextResponse.json({ message: `Generated ${(inserted || []).length} checklist items`, items: inserted || [] });
   } catch (error) {
     console.error('Failed to generate checklist:', error);
     return NextResponse.json({ error: 'Failed to generate checklist' }, { status: 500 });

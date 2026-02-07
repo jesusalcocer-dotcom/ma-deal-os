@@ -3,16 +3,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus } from 'lucide-react';
-import { db } from '@/lib/supabase/server';
-import { deals } from '@ma-deal-os/db';
-import { desc } from 'drizzle-orm';
+import { supabase } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DealsPage() {
   let dealList: any[] = [];
   try {
-    dealList = await db().select().from(deals).orderBy(desc(deals.created_at));
+    const { data, error } = await supabase()
+      .from('deals')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) dealList = data;
   } catch {
     // DB not connected yet - show empty state
   }

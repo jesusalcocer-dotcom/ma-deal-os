@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/supabase/server';
-import { deals } from '@ma-deal-os/db';
-import { eq } from 'drizzle-orm';
+import { supabase } from '@/lib/supabase/server';
 import { parseTermSheet } from '@ma-deal-os/ai';
 import { extractTextFromDocx, extractTextFromPdf } from '@ma-deal-os/integrations';
 
 export async function POST(req: NextRequest, { params }: { params: { dealId: string } }) {
   try {
     const { dealId } = await params;
-    const [deal] = await db().select().from(deals).where(eq(deals.id, dealId));
-    if (!deal) {
+    const { data: dealData, error: dealError } = await supabase()
+      .from('deals')
+      .select('*')
+      .eq('id', dealId)
+      .single();
+
+    if (dealError || !dealData) {
       return NextResponse.json({ error: 'Deal not found' }, { status: 404 });
     }
 
+    const deal = dealData as any;
     const formData = await req.formData();
     const file = formData.get('file') as File;
     if (!file) {
@@ -43,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: { dealId: str
 
     const updateData: Record<string, any> = {
       parameters: mergedParams,
-      updated_at: new Date(),
+      updated_at: new Date().toISOString(),
     };
     if (result.metadata.target_name?.value) updateData.target_name = result.metadata.target_name.value;
     if (result.metadata.buyer_name?.value) updateData.buyer_name = result.metadata.buyer_name.value;
@@ -52,7 +56,14 @@ export async function POST(req: NextRequest, { params }: { params: { dealId: str
     if (result.metadata.deal_value?.value) updateData.deal_value = String(result.metadata.deal_value.value);
     if (result.metadata.buyer_type?.value) updateData.buyer_type = result.metadata.buyer_type.value;
 
-    const [updated] = await db().update(deals).set(updateData).where(eq(deals.id, dealId)).returning();
+    const { data: updated, error: updateError } = await supabase()
+      .from('deals')
+      .update(updateData as any)
+      .eq('id', dealId)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
 
     return NextResponse.json({ deal: updated, extractions: result.extractions, metadata: result.metadata });
   } catch (error) {

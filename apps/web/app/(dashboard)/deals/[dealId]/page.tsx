@@ -1,7 +1,5 @@
 import { notFound } from 'next/navigation';
-import { db } from '@/lib/supabase/server';
-import { deals, checklistItems } from '@ma-deal-os/db';
-import { eq } from 'drizzle-orm';
+import { supabase } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DealNav } from '@/components/layout/DealNav';
@@ -15,11 +13,21 @@ export default async function DealDashboardPage({ params }: { params: { dealId: 
   let items: any[] = [];
 
   try {
-    const result = await db().select().from(deals).where(eq(deals.id, dealId));
-    deal = result[0];
-    if (!deal) notFound();
+    const { data: dealData, error: dealError } = await supabase()
+      .from('deals')
+      .select('*')
+      .eq('id', dealId)
+      .single();
 
-    items = await db().select().from(checklistItems).where(eq(checklistItems.deal_id, dealId));
+    if (dealError || !dealData) notFound();
+    deal = dealData;
+
+    const { data: itemsData } = await supabase()
+      .from('checklist_items')
+      .select('*')
+      .eq('deal_id', dealId);
+
+    items = itemsData || [];
   } catch {
     notFound();
   }
@@ -51,13 +59,10 @@ export default async function DealDashboardPage({ params }: { params: { dealId: 
           )}
         </div>
 
-        {/* Health Indicators */}
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Critical Items
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Critical Items</CardTitle>
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${criticalItems > 0 ? 'text-destructive' : 'text-green-600'}`}>
@@ -65,26 +70,18 @@ export default async function DealDashboardPage({ params }: { params: { dealId: 
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Document Progress
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Document Progress</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{progressPct}%</div>
-              <p className="text-xs text-muted-foreground">
-                {completedItems} / {totalItems} items
-              </p>
+              <p className="text-xs text-muted-foreground">{completedItems} / {totalItems} items</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Deal Value
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Deal Value</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -92,12 +89,9 @@ export default async function DealDashboardPage({ params }: { params: { dealId: 
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Days to Close
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Days to Close</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -109,7 +103,6 @@ export default async function DealDashboardPage({ params }: { params: { dealId: 
           </Card>
         </div>
 
-        {/* Checklist Summary */}
         <Card>
           <CardHeader>
             <CardTitle>Checklist Summary</CardTitle>

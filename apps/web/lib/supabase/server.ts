@@ -1,5 +1,9 @@
-import { getDb } from '@ma-deal-os/db';
+import { getSupabaseClient } from './client';
+
+export function supabase() {
+  return getSupabaseClient();
+}
 
 export function db() {
-  return getDb();
+  return getSupabaseClient();
 }

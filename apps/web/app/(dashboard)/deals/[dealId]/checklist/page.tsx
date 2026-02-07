@@ -1,12 +1,9 @@
-import { db } from '@/lib/supabase/server';
-import { deals, checklistItems } from '@ma-deal-os/db';
-import { eq, asc } from 'drizzle-orm';
+import { supabase } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { DealNav } from '@/components/layout/DealNav';
-import { CHECKLIST_STATUS_LABELS, DOCUMENT_CATEGORIES } from '@ma-deal-os/core';
+import { CHECKLIST_STATUS_LABELS } from '@ma-deal-os/core';
 import { GenerateChecklistButton } from '@/components/deal/GenerateChecklistButton';
 
 export const dynamic = 'force-dynamic';
@@ -17,15 +14,22 @@ export default async function ChecklistPage({ params }: { params: { dealId: stri
   let items: any[] = [];
 
   try {
-    const result = await db().select().from(deals).where(eq(deals.id, dealId));
-    deal = result[0];
-    if (!deal) notFound();
+    const { data: dealData, error: dealError } = await supabase()
+      .from('deals')
+      .select('*')
+      .eq('id', dealId)
+      .single();
 
-    items = await db()
-      .select()
-      .from(checklistItems)
-      .where(eq(checklistItems.deal_id, dealId))
-      .orderBy(asc(checklistItems.sort_order));
+    if (dealError || !dealData) notFound();
+    deal = dealData;
+
+    const { data: itemsData } = await supabase()
+      .from('checklist_items')
+      .select('*')
+      .eq('deal_id', dealId)
+      .order('sort_order', { ascending: true });
+
+    items = itemsData || [];
   } catch {
     notFound();
   }
@@ -83,9 +87,7 @@ export default async function ChecklistPage({ params }: { params: { dealId: stri
                       >
                         <div className="flex-1">
                           <p className="font-medium">{item.document_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {item.trigger_rule}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{item.trigger_rule}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           {item.ball_with && (
