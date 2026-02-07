@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/server';
+import { generateClientCommunication } from '@ma-deal-os/ai';
 
 export async function POST(
   req: NextRequest,
@@ -46,24 +47,18 @@ export async function POST(
     let subject: string;
     let emailBody: string;
     try {
-      // Dynamic import to avoid build issues — pipeline added in Step 6.3
-      const aiModule = await import(/* webpackIgnore: true */ '@ma-deal-os/ai') as any;
-      if (aiModule.generateClientCommunication) {
-        const result = await aiModule.generateClientCommunication({
-          deal_name: deal.name,
-          deal_status: deal.status,
-          deal_value: deal.deal_value,
-          checklist_progress: { total, completed },
-          pending_action_items: actionItems || [],
-          communication_type: type,
-        });
-        subject = result.subject;
-        emailBody = result.body;
-      } else {
-        throw new Error('Pipeline not yet available');
-      }
+      const result = await generateClientCommunication({
+        deal_name: deal.name,
+        deal_status: deal.status,
+        deal_value: deal.deal_value,
+        checklist_progress: { total, completed },
+        pending_action_items: actionItems || [],
+        communication_type: type,
+      });
+      subject = result.subject;
+      emailBody = result.body;
     } catch {
-      // Fallback template
+      // Fallback template if AI pipeline fails
       subject = `${deal.name} — ${type === 'status_update' ? 'Status Update' : 'Action Required'}`;
       emailBody = `Dear Client,\n\nThis is an automated ${type} regarding ${deal.name}.\n\nChecklist progress: ${completed}/${total} items complete.\n${(actionItems || []).length > 0 ? '\nPending action items:\n' + (actionItems || []).map((a: any) => `- ${a.description}`).join('\n') : ''}\n\nPlease let us know if you have any questions.\n\nBest regards`;
     }
