@@ -521,7 +521,7 @@ def run_session(
     log_info("Launching Claude Code...")
     try:
         proc = subprocess.Popen(
-            ["claude", "--print", prompt],
+            ["claude", "--print", prompt, "--dangerously-skip-permissions", "--model", "claude-opus-4-6"],
             cwd=REPO_ROOT,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
