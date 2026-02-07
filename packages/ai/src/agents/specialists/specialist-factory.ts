@@ -4,6 +4,8 @@
  */
 
 import { getAnthropicClient } from '../../client';
+import { loadSkills } from '../../skills/skill-loader';
+import { findApplicableSkills } from '../../skills/skill-registry';
 import type { SpecialistConfig, SpecialistResult, SpecialistRunner } from '../types';
 
 /**
@@ -20,8 +22,23 @@ export function createSpecialist(config: SpecialistConfig): SpecialistRunner {
     const model = config.model || 'claude-sonnet-4-5-20250929';
     const maxTokens = config.max_tokens || 4096;
 
+    // Discover and load applicable skills
+    let skillContent = '';
+    try {
+      const discoveredSkills = findApplicableSkills(config.task_type, {
+        agentType: 'specialist',
+      });
+      // Merge with explicitly requested skills, deduplicate
+      const allSkillIds = [...new Set([...config.skills, ...discoveredSkills])];
+      if (allSkillIds.length > 0) {
+        skillContent = await loadSkills(allSkillIds);
+      }
+    } catch {
+      // Skills loading is optional — don't fail the specialist
+    }
+
     // Build the specialist system prompt
-    const systemPrompt = buildSpecialistPrompt(config);
+    const systemPrompt = buildSpecialistPrompt(config, skillContent);
 
     // Build user message with task input
     const userMessage = buildTaskMessage(config, dealId, taskInput);
@@ -66,17 +83,18 @@ export function createSpecialist(config: SpecialistConfig): SpecialistRunner {
 /**
  * Build the specialist's system prompt from its configuration.
  */
-function buildSpecialistPrompt(config: SpecialistConfig): string {
+function buildSpecialistPrompt(config: SpecialistConfig, skillContent?: string): string {
+  const skillsSection = skillContent
+    ? `\n## Loaded Skills\n${skillContent}\n`
+    : `\n## Skills\n${config.skills.map((s) => `- ${s}`).join('\n')}\n`;
+
   return `You are a Specialist Agent for M&A transactions.
 
 ## Your Specialization
 **Task Type**: ${config.task_type}
 **Name**: ${config.name}
 **Description**: ${config.description}
-
-## Skills
-${config.skills.map((s) => `- ${s}`).join('\n')}
-
+${skillsSection}
 ## Instructions
 ${config.instructions}
 

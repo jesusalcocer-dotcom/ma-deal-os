@@ -14,3 +14,4 @@ export type { ClientCommunicationInput, ClientCommunicationResult } from './pipe
 export { generateClosingChecklist } from './pipelines/closing-generator';
 export type { ClosingConditionExtraction, ClosingDeliverableExtraction, ClosingGenerationResult } from './pipelines/closing-generator';
 export * from './agents';
+export { loadSkills, findApplicableSkills } from './skills';
