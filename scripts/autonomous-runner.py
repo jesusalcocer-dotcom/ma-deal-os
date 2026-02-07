@@ -104,9 +104,13 @@ class SessionResult:
     error: str | None = None
     started_at: str = ""
     finished_at: str = ""
+    output: str = ""  # Collected stdout for post-session analysis
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+        # Exclude raw output from serialized dict to keep JSON logs manageable
+        d.pop("output", None)
+        return d
 
 # ============================================================
 # Helpers
@@ -543,35 +547,52 @@ def run_session(
             finished_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
         )
 
-    # Monitor the session
+    # Monitor the session — stream stdout in real-time, collect for analysis, write to build_log.txt
     stuck_reason = None
     last_poll = time.time()
+    collected_output: list[str] = []
+    build_log_path = REPO_ROOT / "build_log.txt"
 
     try:
-        while proc.poll() is None:
-            # Stream output
+        with open(build_log_path, "a") as build_log:
+            build_log.write(f"\n{'=' * 60}\n")
+            build_log.write(f"Session {session_id} — Phase {phase} — {start_time.isoformat()}\n")
+            build_log.write(f"{'=' * 60}\n")
+            build_log.flush()
+
+            while proc.poll() is None:
+                # Stream output line by line
+                if proc.stdout:
+                    line = proc.stdout.readline()
+                    if line:
+                        # Print to terminal in real-time
+                        sys.stdout.write(line)
+                        sys.stdout.flush()
+                        # Collect for post-session analysis
+                        collected_output.append(line)
+                        # Write to build_log.txt in real-time
+                        build_log.write(line)
+                        build_log.flush()
+
+                # Periodic stuck check
+                now = time.time()
+                if now - last_poll >= STUCK_POLL_INTERVAL_SECONDS:
+                    last_poll = now
+                    if start_sha:
+                        stuck_reason = detect_stuck_by_git(start_sha, start_time)
+                        if stuck_reason:
+                            log_warn(f"Stuck detected: {stuck_reason}")
+                            # Don't kill — just note it. Claude may recover.
+                            # We'll generate guidance after the session ends.
+
+            # Drain remaining output after process exits
             if proc.stdout:
-                line = proc.stdout.readline()
-                if line:
+                for line in proc.stdout:
                     sys.stdout.write(line)
                     sys.stdout.flush()
-
-            # Periodic stuck check
-            now = time.time()
-            if now - last_poll >= STUCK_POLL_INTERVAL_SECONDS:
-                last_poll = now
-                if start_sha:
-                    stuck_reason = detect_stuck_by_git(start_sha, start_time)
-                    if stuck_reason:
-                        log_warn(f"Stuck detected: {stuck_reason}")
-                        # Don't kill — just note it. Claude may recover.
-                        # We'll generate guidance after the session ends.
-
-        # Drain remaining output
-        if proc.stdout:
-            for line in proc.stdout:
-                sys.stdout.write(line)
-                sys.stdout.flush()
+                    collected_output.append(line)
+                    build_log.write(line)
+                    build_log.flush()
 
     except KeyboardInterrupt:
         log_warn("Interrupted by user. Waiting for Claude to finish...")
@@ -584,6 +605,7 @@ def run_session(
     end_time = datetime.datetime.now(datetime.timezone.utc)
     duration = (end_time - start_time).total_seconds()
     exit_code = proc.returncode or 0
+    full_output = "".join(collected_output)
 
     # Count commits made during session
     commits = 0
@@ -626,6 +648,7 @@ def run_session(
         error=f"exit code {exit_code}" if exit_code != 0 else None,
         started_at=start_time.isoformat(),
         finished_at=end_time.isoformat(),
+        output=full_output,
     )
 
     # If stuck, generate guidance for the next session
