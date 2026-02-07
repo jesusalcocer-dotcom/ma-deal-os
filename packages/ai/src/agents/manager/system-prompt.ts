@@ -3,7 +3,7 @@
  * Builds the system prompt with injected deal context for the Manager Agent.
  */
 
-import type { ManagerContext } from '../types';
+import type { ManagerContext, HardConstraint, Preference, StrategicDirective } from '../types';
 
 /**
  * Build the Manager Agent system prompt with deal context injected.
@@ -121,10 +121,53 @@ ${activityLines}`);
 
   // Partner constitution
   if (context.constitution) {
-    sections.push(`## Partner Constitution (Constraints)
-**Risk Tolerance**: ${context.constitution.risk_tolerance}
-**Communication Preferences**: ${context.constitution.communication_preferences}
-**Approval Thresholds**: ${JSON.stringify(context.constitution.approval_thresholds)}`);
+    const constSections: string[] = [];
+    constSections.push(`## PARTNER CONSTITUTION
+You MUST obey these rules at all times. Violations of hard constraints are NEVER acceptable.`);
+
+    // Hard constraints
+    const constraints = context.constitution.hard_constraints || [];
+    if (constraints.length > 0) {
+      const constraintLines = constraints
+        .map(
+          (c: HardConstraint) =>
+            `  - **[${c.category.toUpperCase()}]** ${c.description}\n    Rule: ${c.rule}\n    Consequence: ${c.consequence}`
+        )
+        .join('\n');
+      constSections.push(`### Hard Constraints (INVIOLABLE)
+If any proposed action would violate a hard constraint, do NOT propose it. Instead, create a Tier 3 escalation explaining the conflict.
+${constraintLines}`);
+    }
+
+    // Preferences
+    const preferences = context.constitution.preferences || [];
+    if (preferences.length > 0) {
+      const prefLines = preferences
+        .map(
+          (p: Preference) =>
+            `  - **[${p.category}]** ${p.description}\n    Default: ${p.default_behavior}\n    Override: ${p.override_condition}`
+        )
+        .join('\n');
+      constSections.push(`### Preferences (DEFAULTS)
+Follow preferences unless you have a justified reason to deviate. If deviating, explain why.
+${prefLines}`);
+    }
+
+    // Strategic directives
+    const directives = context.constitution.strategic_directives || [];
+    if (directives.length > 0) {
+      const dirLines = directives
+        .map(
+          (d: StrategicDirective) =>
+            `  - **[${d.priority.toUpperCase()}]** ${d.description}\n    Applies to: ${d.applies_to.join(', ')}`
+        )
+        .join('\n');
+      constSections.push(`### Strategic Directives
+Use strategic directives to guide all decision-making.
+${dirLines}`);
+    }
+
+    sections.push(constSections.join('\n\n'));
   }
 
   // Escalation rules

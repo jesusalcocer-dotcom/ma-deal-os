@@ -3,6 +3,15 @@
  * Defines interfaces for the Manager, Specialist, and System Expert agents.
  */
 
+import type {
+  PartnerConstitution,
+  HardConstraint,
+  Preference,
+  StrategicDirective,
+} from '@ma-deal-os/core';
+
+export type { PartnerConstitution, HardConstraint, Preference, StrategicDirective };
+
 // ========================================
 // Manager Context
 // ========================================
@@ -68,12 +77,6 @@ export interface PendingApproval {
   status: string;
   actions_count: number;
   created_at: string;
-}
-
-export interface PartnerConstitution {
-  risk_tolerance: string;
-  communication_preferences: string;
-  approval_thresholds: Record<string, any>;
 }
 
 export interface Deadline {

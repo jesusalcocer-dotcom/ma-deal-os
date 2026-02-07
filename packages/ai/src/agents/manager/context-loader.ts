@@ -158,16 +158,8 @@ export async function loadManagerContext(
     created_at: c.created_at,
   }));
 
-  // Build partner constitution from deal parameters if available
-  const constitution = deal.parameters?.partner_constitution
-    ? {
-        risk_tolerance: deal.parameters.partner_constitution.risk_tolerance || 'moderate',
-        communication_preferences:
-          deal.parameters.partner_constitution.communication_preferences || 'email',
-        approval_thresholds:
-          deal.parameters.partner_constitution.approval_thresholds || {},
-      }
-    : undefined;
+  // Load partner constitution directly from deal record
+  const constitution = deal.constitution || undefined;
 
   return {
     deal: {
