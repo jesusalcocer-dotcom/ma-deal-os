@@ -2,9 +2,9 @@
   "version": "2.0",
   "project": "ma-deal-os",
   "current_phase": 9,
-  "current_step": 1,
-  "current_step_name": "Pending — check skills/phase-09.md",
-  "phase_title": "Phase 9 (Next)",
+  "current_step": 3,
+  "current_step_name": "Step 9.3: Conversational Encoding Pipeline",
+  "phase_title": "Phase 9: Partner Constitution & Governance",
   "completed_phases": [
     {
       "phase": 0,
@@ -61,10 +61,10 @@
       "test_report": "docs/test-results/phase8_test_report.md"
     }
   ],
-  "last_completed_step": "8.9",
-  "last_completed_at": "2026-02-07T22:00:00Z",
-  "last_commit": "70878cc",
-  "total_commits_this_session": 17,
+  "last_completed_step": "9.2",
+  "last_completed_at": "2026-02-08T00:00:00Z",
+  "last_commit": "944c0dd",
+  "total_commits_this_session": 20,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -278,5 +278,5 @@
       "steps_completed": ["8.1", "8.2", "8.3", "8.4", "8.5", "8.6", "8.7", "8.8", "8.9"]
     }
   ],
-  "notes": "Phase 8 COMPLETE. 22 skill files (10 domain, 6 process, 6 meta), skill loader + registry, specialist integration. Migration 013 needs Supabase Dashboard creation. Ready for Phase 9."
+  "notes": "Phase 9 in progress. Steps 9.1-9.2 complete (constitution types, schema, API routes). Migration 014 (constitution column) deferred. Step 9.3 next: conversational encoding pipeline."
 }
