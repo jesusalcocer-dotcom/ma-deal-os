@@ -4,6 +4,7 @@ import { registerDealTools } from './tools/deal-tools.js';
 import { registerChecklistTools } from './tools/checklist-tools.js';
 import { registerDocumentTools } from './tools/document-tools.js';
 import { registerPrecedentTools } from './tools/precedent-tools.js';
+import { registerSystemTools } from './tools/system-tools.js';
 
 export const MCP_SERVER_VERSION = '0.1.0';
 
@@ -17,6 +18,7 @@ export function createServer(): McpServer {
   registerChecklistTools(server);
   registerDocumentTools(server);
   registerPrecedentTools(server);
+  registerSystemTools(server);
 
   return server;
 }
