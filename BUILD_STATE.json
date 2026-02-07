@@ -1,10 +1,10 @@
 {
   "version": "2.0",
   "project": "ma-deal-os",
-  "current_phase": 6,
-  "current_step": 5,
-  "current_step_name": "Step 6.5 — Closing Checklist Generation",
-  "phase_title": "Phase 6: Closing Mechanics, Client Management, Third-Party Tracking",
+  "current_phase": 7,
+  "current_step": 1,
+  "current_step_name": "Pending — check skills/phase-07.md",
+  "phase_title": "Phase 7 (Next)",
   "completed_phases": [
     {
       "phase": 0,
@@ -41,12 +41,18 @@
       "title": "Disclosure Schedules, Negotiation State, Email Enhancement",
       "completed_at": "2026-02-07T16:00:00Z",
       "test_report": "docs/test-results/phase5_test_report.md"
+    },
+    {
+      "phase": 6,
+      "title": "Closing Mechanics, Client Management, Third-Party Tracking",
+      "completed_at": "2026-02-07T19:00:00Z",
+      "test_report": "docs/test-results/phase6_test_report.md"
     }
   ],
-  "last_completed_step": "6.4",
-  "last_completed_at": "2026-02-07T18:00:00Z",
-  "last_commit": "5921685",
-  "total_commits_this_session": 4,
+  "last_completed_step": "6.10",
+  "last_completed_at": "2026-02-07T19:00:00Z",
+  "last_commit": "dd26db4",
+  "total_commits_this_session": 5,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -136,6 +142,24 @@
       "item": "Client communication generation pipeline (Anthropic API)",
       "verified_at": "2026-02-07T18:00:00Z",
       "result": "Professional status update generated for Project Mercury"
+    },
+    {
+      "phase": 6,
+      "item": "Closing checklist generation pipeline (Anthropic API)",
+      "verified_at": "2026-02-07T19:00:00Z",
+      "result": "13 conditions + 14 deliverables generated from SPA"
+    },
+    {
+      "phase": 6,
+      "item": "Funds-flow calculation",
+      "verified_at": "2026-02-07T19:00:00Z",
+      "result": "$185M purchase, $18.5M escrow (10%), $166.5M net to seller"
+    },
+    {
+      "phase": 6,
+      "item": "All 3 new UI pages return HTTP 200",
+      "verified_at": "2026-02-07T19:00:00Z",
+      "result": "closing, client, third-parties all return 200"
     }
   ],
   "session_history": [
@@ -183,7 +207,12 @@
       "session_id": "s-06-session1",
       "started_at": "2026-02-07T17:00:00Z",
       "steps_completed": ["6.1", "6.2", "6.3", "6.4"]
+    },
+    {
+      "session_id": "s-06-session2",
+      "started_at": "2026-02-07T18:30:00Z",
+      "steps_completed": ["6.5", "6.6", "6.7", "6.8", "6.9", "6.10"]
     }
   ],
-  "notes": "Phase 6 in progress. Steps 6.1-6.4 complete: deal_third_parties table + API, client management tables + API, client communication AI pipeline (tested live), closing tables. Migrations 010-012 need Supabase Dashboard creation. Next: Step 6.5 (closing checklist generation pipeline)."
+  "notes": "Phase 6 COMPLETE. 7 new table schemas (Drizzle + SQL migrations 010-012), 11 API routes, 2 AI pipelines (client communication + closing checklist), 3 new UI pages. Migrations 010-012 need Supabase Dashboard creation. Ready for Phase 7."
 }
