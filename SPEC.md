@@ -1,170 +1,87 @@
-# M&A Deal Operating System — Implementation Specification
+# M&A Deal Operating System — Complete Specification
 
-## For Claude Code Implementation in a Single GitHub Monorepo
+## Merged V1 + V2 — Single Source of Truth
 
-**Version:** 0.1 (Prototype / Testing)
-**Date:** February 5, 2026
+**Version:** 2.0
+**Date:** February 7, 2026
+**Status:** Phases 0–2 COMPLETE | Phases 3–14 TO BUILD
 
 ---
 
 ## TABLE OF CONTENTS
 
-1. [Pre-Implementation Setup Checklist](#1-pre-implementation-setup-checklist)
-2. [Required Keys & Credentials](#2-required-keys--credentials)
-3. [Technology Stack](#3-technology-stack)
-4. [Repository Structure](#4-repository-structure)
-5. [Database Schema (Supabase)](#5-database-schema-supabase)
-6. [Backend API Specification](#6-backend-api-specification)
-7. [Cowork Plugin Specification](#7-cowork-plugin-specification)
-8. [Web Portal Specification](#8-web-portal-specification)
-9. [Google Drive Integration](#9-google-drive-integration)
-10. [Outlook Email Integration](#10-outlook-email-integration)
-11. [AI/LLM Pipeline Specification](#11-aillm-pipeline-specification)
-12. [Document Processing Pipeline](#12-document-processing-pipeline)
-13. [Implementation Phases](#13-implementation-phases)
-14. [Environment Variables Reference](#14-environment-variables-reference)
+1. [Vision & Architecture Philosophy](#1-vision--architecture-philosophy)
+2. [Technology Stack & Repository Structure](#2-technology-stack--repository-structure)
+3. [Three-Layer Architecture](#3-three-layer-architecture)
+4. [Database Schema](#4-database-schema)
+5. [Event Propagation Backbone](#5-event-propagation-backbone)
+6. [Approval Framework](#6-approval-framework)
+7. [Agent Architecture](#7-agent-architecture)
+8. [Skills System](#8-skills-system)
+9. [Partner Constitution & Governance](#9-partner-constitution--governance)
+10. [Precedent Intelligence Pipeline](#10-precedent-intelligence-pipeline)
+11. [Document Processing Pipeline](#11-document-processing-pipeline)
+12. [Email & Communication Integration](#12-email--communication-integration)
+13. [Google Drive Integration](#13-google-drive-integration)
+14. [Gap Coverage: New Workflows](#14-gap-coverage-new-workflows)
+15. [Observer & Self-Improvement System](#15-observer--self-improvement-system)
+16. [Simulation Framework](#16-simulation-framework)
+17. [Knowledge & Learning Pipeline](#17-knowledge--learning-pipeline)
+18. [API Routes](#18-api-routes)
+19. [Web Portal Pages & Components](#19-web-portal-pages--components)
+20. [Implementation Phases](#20-implementation-phases)
+21. [Cost Model & Token Economics](#21-cost-model--token-economics)
+22. [Environment & Credentials](#22-environment--credentials)
 
 ---
 
-## 1. PRE-IMPLEMENTATION SETUP CHECKLIST
+## 1. VISION & ARCHITECTURE PHILOSOPHY
 
-Complete these steps IN ORDER before Claude Code begins building. Each step produces one or more environment variables or credentials needed by the codebase. Do not skip any step.
+### 1.1 The Goal
 
-### Step 1: GitHub Repository
+Build a system where an M&A deal can be executed to completion by a two-person team: a human partner making strategic decisions, and an agent system doing everything else — drafting, analyzing, monitoring, coordinating, communicating, and improving itself over time.
 
-- [ ] Create a new GitHub repo (e.g., `ma-deal-os`)
-- [ ] Clone locally
-- [ ] This spec (`SPEC.md`) goes in the repo root
+The system replaces 3-4 human associates (junior, mid-level, senior) with three layers of automation:
 
-### Step 2: Supabase Project
+- **Deterministic code** replaces mechanical task execution
+- **Traditional AI API calls** replace analytical task execution
+- **Agents** replace strategic judgment, initiative, and coordination
 
-- [ ] Go to https://supabase.com → Sign up / Log in
-- [ ] Click "New Project"
-- [ ] Name: `ma-deal-os` (or similar)
-- [ ] Set a strong database password — **save it, you'll need it**
-- [ ] Region: choose closest to you
-- [ ] Wait for project to provision (~2 minutes)
-- [ ] Go to **Settings → API** and copy:
-  - `SUPABASE_URL` (looks like `https://xxxxx.supabase.co`)
-  - `SUPABASE_ANON_KEY` (public key for client-side)
-  - `SUPABASE_SERVICE_ROLE_KEY` (secret key for backend — never expose to client)
-- [ ] Go to **Settings → Database** and copy:
-  - `DATABASE_URL` (direct Postgres connection string, for migrations)
-- [ ] Enable the **pgvector** extension:
-  - Go to **Database → Extensions** → search "vector" → Enable
-- [ ] Enable the **pg_trgm** extension (for fuzzy text search):
-  - Same place → search "pg_trgm" → Enable
+### 1.2 Design Principles
 
-### Step 3: Anthropic API Key
+**Backbone first, agents on top.** The deterministic code and API call layers handle 90% of volume at 10% of cost. Agents handle the 10% of volume where 90% of strategic value lives. Never use an agent where an API call suffices. Never use an API call where deterministic code suffices.
 
-- [ ] Go to https://console.anthropic.com
-- [ ] Create an API key
-- [ ] Copy as `ANTHROPIC_API_KEY`
-- [ ] Ensure your account has credits or a payment method
-- [ ] Note: we will use `claude-sonnet-4-5-20250929` for most tasks and `claude-opus-4-6` for complex reasoning
+**Pre-compute everything, approve once.** The system doesn't flag problems and ask the human what to do. It identifies problems, figures out exactly what to do, stages the complete solution, and asks for a yes/no. Approval is confirmation, not delegation.
 
-### Step 4: Google Cloud Project (for Google Drive) ✅ COMPLETED
+**Git is the safety net.** Every system modification — by humans, agents, or the Observer — is a git commit. Nothing is ever lost. This allows maximum autonomy within full auditability.
 
-Uses a **Service Account** (no OAuth consent screens needed).
+**The deal never sleeps.** The backbone processes events continuously. Agents activate selectively. The human engages on their schedule. The system is always working, always monitoring, always ready.
 
-- [x] Google Cloud project: `ma-deal-os`
-- [x] APIs enabled: Google Drive API, Google Docs API
-- [x] Service Account created: `ma-deal-os@ma-deal-os.iam.gserviceaccount.com`
-- [x] Service Account JSON key saved to `config/google-service-account.json` (gitignored)
-- [x] Google Drive folder `MA Deal OS` shared with service account as Editor
-- [x] `GOOGLE_DRIVE_ROOT_FOLDER_ID` captured
+**Self-improvement is continuous.** The system observes its own performance, identifies weaknesses, implements fixes, and validates improvements — during simulation runs, not between them.
 
-### Step 5: Microsoft Azure App Registration (for Outlook)
+### 1.3 Relationship to Existing Codebase
 
-- [ ] Go to https://portal.azure.com → Azure Active Directory → App registrations → New registration
-- [ ] Name: `MA Deal OS`
-- [ ] Supported account types: "Accounts in any organizational directory and personal Microsoft accounts"
-- [ ] Redirect URI: Web → `http://localhost:3000/api/auth/callback/microsoft`
-- [ ] After creation, copy:
-  - `MICROSOFT_CLIENT_ID` (Application/client ID)
-  - `MICROSOFT_TENANT_ID` (Directory/tenant ID)
-- [ ] Go to **Certificates & secrets → New client secret**
-  - Copy the secret **value** (not the ID) as `MICROSOFT_CLIENT_SECRET`
-- [ ] Go to **API permissions → Add a permission → Microsoft Graph**:
-  - Delegated permissions:
-    - `Mail.Read`
-    - `Mail.ReadWrite`
-    - `Mail.Send`
-    - `User.Read`
-  - Click "Grant admin consent" if you have admin access, otherwise users will be prompted
+Phases 0–2 are **COMPLETE** and running in production. The existing codebase includes:
 
-### Step 6: Domain & Hosting
+- Monorepo structure (apps/web, packages/core, packages/db, packages/ai, packages/integrations)
+- 14 database tables in Supabase
+- Deal CRUD, term sheet parsing, checklist generation
+- Document pipeline (v1 template → v2 precedent → v3 scrub)
+- 50 SPA provision types seeded
+- 10 EDGAR precedent deals harvested
+- Provision segmenter (47 tagged sections)
+- Google Drive integration (service account, folder creation, file upload)
+- Web UI (deal list, deal detail, checklist, documents with version history)
+- DOCX generation
+- Test deal "Project Mercury" with checklist items and 3 document versions
 
-- [ ] **Domain:** Purchase a domain (e.g., `madeals.app` or similar) from Namecheap, Google Domains, Cloudflare, etc.
-- [ ] **Frontend hosting:** Create a Vercel account at https://vercel.com
-  - Connect your GitHub repo
-  - It will auto-deploy from the `apps/web` directory on push
-  - Add your custom domain in Vercel project settings → Domains
-  - Vercel provides free SSL
-- [ ] **Backend hosting:** Same Vercel project can host API routes via Next.js API routes, OR:
-  - Use Railway (https://railway.app) for a standalone backend if needed
-  - Railway free tier: $5 credit/month, enough for testing
-- [ ] Update Microsoft OAuth redirect URI in Azure with your production domain:
-  - `https://yourdomain.com/api/auth/callback/microsoft`
-
-### Step 7: Embedding Model
-
-- [ ] **Option A (Recommended):** Use Anthropic's Voyage embeddings
-  - API key is shared with Anthropic API: same `ANTHROPIC_API_KEY`
-  - Model: `voyage-3` (1024 dimensions)
-  - Note: Check current Voyage availability; if unavailable, use Option B
-- [ ] **Option B:** Use OpenAI embeddings
-  - Go to https://platform.openai.com → Create API key
-  - Copy as `OPENAI_API_KEY`
-  - Model: `text-embedding-3-small` (1536 dimensions)
-
-### Step 8: Verify Everything
-
-Before starting Claude Code, confirm you have ALL of these:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
-SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
-DATABASE_URL=postgresql://postgres:...@...supabase.co:5432/postgres
-
-ANTHROPIC_API_KEY=sk-ant-...
-
-GOOGLE_SERVICE_ACCOUNT_KEY_PATH=./config/google-service-account.json
-GOOGLE_DRIVE_ROOT_FOLDER_ID=...
-
-MICROSOFT_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-MICROSOFT_TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-MICROSOFT_CLIENT_SECRET=xxxxx
-
-NEXTAUTH_SECRET=               # Generate: openssl rand -base64 32
-NEXTAUTH_URL=http://localhost:3000
-```
+**DO NOT rebuild, overwrite, or refactor Phases 0–2 code** unless a skill file explicitly tells you to modify specific files for integration purposes.
 
 ---
 
-## 2. REQUIRED KEYS & CREDENTIALS SUMMARY
+## 2. TECHNOLOGY STACK & REPOSITORY STRUCTURE
 
-| Credential | Source | Purpose | Required For |
-|-----------|--------|---------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase dashboard → Settings → API | Database connection | Backend, Web |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase dashboard → Settings → API | Client-side DB access (with RLS) | Web portal |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase dashboard → Settings → API | Server-side DB access (bypasses RLS) | Backend only |
-| `DATABASE_URL` | Supabase dashboard → Settings → Database | Direct Postgres for migrations | Migrations only |
-| `ANTHROPIC_API_KEY` | Anthropic Console | Claude API calls | Backend |
-| `GOOGLE_SERVICE_ACCOUNT_KEY_PATH` | Google Cloud Console → Service Account → Keys | Google Drive API (service account auth) | Backend |
-| `GOOGLE_DRIVE_ROOT_FOLDER_ID` | Google Drive folder URL | Root folder for all deal folders | Backend |
-| `MICROSOFT_CLIENT_ID` | Azure Portal | Microsoft OAuth + Graph API | Backend, Web |
-| `MICROSOFT_TENANT_ID` | Azure Portal | Microsoft OAuth routing | Backend |
-| `MICROSOFT_CLIENT_SECRET` | Azure Portal | Microsoft OAuth | Backend |
-| `NEXTAUTH_SECRET` | Self-generated | Session encryption | Web |
-| `NEXTAUTH_URL` | Your domain | OAuth callback base | Web |
-
----
-
-## 3. TECHNOLOGY STACK
-
-### Core
+### 2.1 Core Stack
 
 | Layer | Technology | Version | Rationale |
 |-------|-----------|---------|-----------|
@@ -173,1048 +90,1611 @@ NEXTAUTH_URL=http://localhost:3000
 | **Package Manager** | pnpm | 9.x | Fast, efficient for monorepos |
 | **Monorepo Tool** | Turborepo | Latest | Build orchestration, caching |
 
-### Database & Storage
+### 2.2 Database & Storage
 
 | Component | Technology | Notes |
 |-----------|-----------|-------|
-| **Database** | Supabase (PostgreSQL 15+) | Hosted, free tier |
+| **Database** | Supabase (PostgreSQL 15+) | Hosted |
 | **Vector Search** | pgvector extension | Enabled in Supabase |
 | **File Storage** | Supabase Storage | For document versions |
-| **Migrations** | Drizzle ORM | Type-safe schema, migrations |
+| **Migrations** | Drizzle ORM | Type-safe schema |
 
-### Web Application
+### 2.3 Web Application
 
 | Component | Technology | Notes |
 |-----------|-----------|-------|
 | **Framework** | Next.js 14+ (App Router) | Full-stack React framework |
-| **Auth** | NextAuth.js (Auth.js) v5 | Microsoft OAuth for Outlook; simple session for portal |
+| **Auth** | NextAuth.js (Auth.js) v5 | Microsoft OAuth for Outlook |
 | **Styling** | Tailwind CSS + shadcn/ui | Rapid, consistent UI |
-| **State** | Zustand or React Query | Client state + server state |
+| **State** | React Query | Server state management |
 | **Deployment** | Vercel | Auto-deploy from GitHub |
 
-### Integrations
+### 2.4 Integrations
 
 | Component | Technology | Notes |
 |-----------|-----------|-------|
-| **Google Drive** | `googleapis` npm package | Official Google SDK, using **Service Account** auth |
-| **Outlook/Email** | Microsoft Graph SDK (`@microsoft/microsoft-graph-client`) | Official MS SDK |
+| **Google Drive** | `googleapis` npm package | Service Account auth |
+| **Outlook/Email** | Microsoft Graph SDK | Official MS SDK |
 | **LLM** | `@anthropic-ai/sdk` | Claude API |
 | **Document Processing** | `mammoth` (read), `docx` (write), `pdf-parse` (PDF) | Node.js document libraries |
+| **MCP** | `@modelcontextprotocol/sdk` | Agent tooling protocol |
 
-### Cowork Plugin
-
-| Component | Technology | Notes |
-|-----------|-----------|-------|
-| **Format** | Markdown skills + commands + JSON config | Standard Cowork plugin structure |
-| **MCP Server** | TypeScript MCP server using `@modelcontextprotocol/sdk` | Exposes backend to Cowork |
-
----
-
-## 4. REPOSITORY STRUCTURE
+### 2.5 Repository Structure
 
 ```
 ma-deal-os/
-├── SPEC.md                           ← THIS FILE
-├── README.md
-├── package.json                      ← Root workspace config
-├── pnpm-workspace.yaml
-├── turbo.json                        ← Turborepo config
-├── .env.example                      ← Template for all env vars
-├── .gitignore
-│
+├── CLAUDE.md                    ← Build protocol
+├── BUILD_STATE.json             ← Session continuity
+├── SPEC-V2-COMPLETE.md          ← THIS FILE
+├── GUIDANCE.md                  ← Human operator instructions (check + delete)
+├── skills/                      ← Phase-specific build instructions + agent skills
+│   ├── phase-03.md ... phase-14.md  ← Build instructions
+│   ├── static/                  ← Pre-built agent skills (Phase 8)
+│   ├── adaptive/                ← Learned skills (Phase 14)
+│   └── dynamic/                 ← On-the-fly skills
 ├── apps/
-│   └── web/                          ← Next.js web application
-│       ├── package.json
-│       ├── next.config.js
-│       ├── tailwind.config.ts
-│       ├── tsconfig.json
-│       ├── app/
-│       │   ├── layout.tsx            ← Root layout with providers
-│       │   ├── page.tsx              ← Landing / login
-│       │   ├── (auth)/
-│       │   │   ├── login/page.tsx
-│       │   │   └── callback/page.tsx
-│       │   ├── (dashboard)/
-│       │   │   ├── layout.tsx        ← Authenticated layout with sidebar
-│       │   │   ├── deals/
-│       │   │   │   ├── page.tsx          ← Deal list
-│       │   │   │   └── [dealId]/
-│       │   │   │       ├── page.tsx      ← Deal command center (dashboard)
-│       │   │   │       ├── checklist/page.tsx
-│       │   │   │       ├── documents/page.tsx
-│       │   │   │       ├── documents/[docId]/page.tsx
-│       │   │   │       ├── diligence/page.tsx
-│       │   │   │       ├── emails/page.tsx
-│       │   │   │       └── settings/page.tsx
-│       │   │   └── settings/page.tsx ← User/system settings
-│       │   └── api/
-│       │       ├── auth/[...nextauth]/route.ts  ← NextAuth
-│       │       ├── deals/route.ts
-│       │       ├── deals/[dealId]/
-│       │       │   ├── route.ts
-│       │       │   ├── checklist/route.ts
-│       │       │   ├── documents/route.ts
-│       │       │   ├── parse-term-sheet/route.ts
-│       │       │   ├── generate-checklist/route.ts
-│       │       │   ├── emails/route.ts
-│       │       │   └── diligence/route.ts
-│       │       ├── drive/route.ts           ← Google Drive proxy
-│       │       ├── outlook/route.ts         ← Outlook proxy
-│       │       └── mcp/route.ts             ← MCP server HTTP endpoint
-│       ├── components/
-│       │   ├── ui/                   ← shadcn/ui components
-│       │   ├── deal/
-│       │   │   ├── DealCard.tsx
-│       │   │   ├── DealDashboard.tsx
-│       │   │   ├── ChecklistTable.tsx
-│       │   │   ├── DocumentTimeline.tsx
-│       │   │   ├── EmailInbox.tsx
-│       │   │   ├── DealHealthIndicators.tsx
-│       │   │   └── ParameterSheet.tsx
-│       │   ├── document/
-│       │   │   ├── DocumentViewer.tsx
-│       │   │   ├── ProvisionPanel.tsx
-│       │   │   └── RedlineViewer.tsx
-│       │   └── layout/
-│       │       ├── Sidebar.tsx
-│       │       ├── Header.tsx
-│       │       └── DealNav.tsx
-│       └── lib/
-│           ├── supabase/
-│           │   ├── client.ts         ← Browser Supabase client
-│           │   └── server.ts         ← Server Supabase client
-│           ├── auth.ts               ← NextAuth config
-│           └── utils.ts
-│
+│   └── web/                     ← Next.js app
+│       ├── src/
+│       │   ├── app/             ← Pages and API routes
+│       │   └── components/      ← React components
+│       └── .env.local
 ├── packages/
-│   ├── core/                         ← Shared business logic
-│   │   ├── package.json
-│   │   ├── tsconfig.json
+│   ├── core/                    ← Business logic, types, rules
 │   │   └── src/
-│   │       ├── index.ts
-│   │       ├── types/
-│   │       │   ├── deal.ts           ← Deal Parameter Object type
-│   │       │   ├── checklist.ts      ← Checklist item types
-│   │       │   ├── document.ts       ← Document version types
-│   │       │   ├── provision.ts      ← Provision taxonomy types
-│   │       │   ├── diligence.ts      ← DD finding types
-│   │       │   └── email.ts          ← Email classification types
-│   │       ├── rules/
-│   │       │   ├── checklist-rules.ts    ← Deterministic rules engine
-│   │       │   └── document-triggers.ts  ← Document trigger conditions
-│   │       ├── constants/
-│   │       │   ├── deal-enums.ts     ← All enumerated deal variables
-│   │       │   ├── provision-taxonomy.ts ← Provision type hierarchy
-│   │       │   └── dd-taxonomy.ts    ← DD topic taxonomy
+│   │       ├── types/           ← Shared type definitions
+│   │       ├── rules/           ← Deterministic rules engine
+│   │       ├── events/          ← Event bus (Phase 3)
+│   │       ├── constants/       ← Enums, taxonomies
 │   │       └── utils/
-│   │           ├── deal-utils.ts
-│   │           └── provision-utils.ts
-│   │
-│   ├── db/                           ← Database layer
-│   │   ├── package.json
-│   │   ├── tsconfig.json
-│   │   ├── drizzle.config.ts
+│   ├── db/                      ← Drizzle schema and migrations
 │   │   └── src/
-│   │       ├── index.ts
-│   │       ├── schema/
-│   │       │   ├── deals.ts
-│   │       │   ├── checklist-items.ts
-│   │       │   ├── document-versions.ts
-│   │       │   ├── provision-formulations.ts
-│   │       │   ├── dd-findings.ts
-│   │       │   ├── emails.ts
-│   │       │   ├── drive-sync.ts
-│   │       │   └── users.ts
-│   │       ├── migrations/           ← Auto-generated by Drizzle
-│   │       └── seed/
-│   │           ├── seed.ts           ← Main seed runner
-│   │           ├── provision-taxonomy-seed.ts
-│   │           └── sample-deal-seed.ts
-│   │
-│   ├── ai/                           ← AI/LLM pipeline
-│   │   ├── package.json
-│   │   ├── tsconfig.json
+│   │       ├── schema/          ← Table definitions
+│   │       └── seed/            ← Seed data scripts
+│   ├── ai/                      ← Claude API pipelines + agents
 │   │   └── src/
-│   │       ├── index.ts
-│   │       ├── client.ts            ← Anthropic client wrapper
-│   │       ├── embeddings.ts        ← Embedding generation
-│   │       ├── prompts/
-│   │       │   ├── term-sheet-parser.ts
-│   │       │   ├── provision-classifier.ts
-│   │       │   ├── document-adapter.ts
-│   │       │   ├── markup-analyzer.ts
-│   │       │   ├── email-classifier.ts
-│   │       │   ├── dd-analyzer.ts
-│   │       │   └── deal-agent.ts
-│   │       └── pipelines/
-│   │           ├── parse-term-sheet.ts
-│   │           ├── generate-checklist.ts
-│   │           ├── generate-document.ts
-│   │           ├── analyze-markup.ts
-│   │           ├── classify-email.ts
-│   │           ├── process-vdr-document.ts
-│   │           └── deal-briefing.ts
-│   │
-│   ├── integrations/                 ← External service connectors
-│   │   ├── package.json
-│   │   ├── tsconfig.json
+│   │       ├── prompts/         ← Prompt construction
+│   │       ├── pipelines/       ← Layer 2 API call pipelines
+│   │       ├── agents/          ← Layer 3 agent implementations (Phase 7)
+│   │       │   ├── manager/
+│   │       │   ├── specialists/
+│   │       │   ├── system-expert/
+│   │       │   └── observer/
+│   │       └── skills/          ← Skill loader (Phase 8)
+│   ├── integrations/            ← Drive, email, external services
 │   │   └── src/
-│   │       ├── index.ts
 │   │       ├── google-drive/
-│   │       │   ├── client.ts         ← Google Drive API wrapper (Service Account auth)
-│   │       │   ├── sync.ts           ← Bidirectional sync logic
-│   │       │   ├── watcher.ts        ← Change detection
-│   │       │   └── folder-structure.ts ← Deal workspace management
 │   │       ├── outlook/
-│   │       │   ├── client.ts         ← Microsoft Graph client
-│   │       │   ├── classifier.ts     ← Email classification
-│   │       │   ├── attachment-processor.ts
-│   │       │   └── watcher.ts        ← Inbox monitoring
-│   │       └── documents/
-│   │           ├── docx-reader.ts    ← Read/parse DOCX files
-│   │           ├── docx-writer.ts    ← Generate DOCX files
-│   │           ├── pdf-reader.ts     ← Read/parse PDF files
-│   │           ├── redline-generator.ts ← Generate tracked changes
-│   │           └── provision-segmenter.ts ← Split doc into provisions
-│   │
-│   └── mcp-server/                   ← MCP server for Cowork
-│       ├── package.json
-│       ├── tsconfig.json
+│   │       ├── documents/
+│   │       └── precedent/       ← EDGAR pipeline (Phase 10)
+│   └── mcp-server/              ← MCP server (Phase 3)
 │       └── src/
-│           ├── index.ts              ← MCP server entry point
+│           ├── index.ts
 │           └── tools/
-│               ├── deal-tools.ts     ← get_deal_state, list_deals
-│               ├── checklist-tools.ts
-│               ├── document-tools.ts
-│               ├── precedent-tools.ts ← search_precedent, whats_market
-│               ├── email-tools.ts
-│               └── dd-tools.ts
-│
-├── cowork-plugin/                    ← Cowork plugin (file-based)
-│   ├── .claude-plugin/
-│   │   └── plugin.json
-│   ├── .mcp.json                     ← Points to mcp-server
-│   ├── README.md
-│   ├── commands/
-│   │   ├── parse-term-sheet.md
-│   │   ├── generate-checklist.md
-│   │   ├── review-document.md
-│   │   ├── analyze-markup.md
-│   │   ├── whats-market.md
-│   │   ├── morning-briefing.md
-│   │   ├── deal-status.md
-│   │   └── dd-summary.md
-│   └── skills/
-│       ├── deal-parameters/SKILL.md
-│       ├── checklist-engine/SKILL.md
-│       ├── document-pipeline/SKILL.md
-│       ├── precedent-intelligence/SKILL.md
-│       ├── markup-analysis/SKILL.md
-│       ├── email-processing/SKILL.md
-│       └── due-diligence/SKILL.md
-│
-└── scripts/
-    ├── setup.sh                      ← One-time setup script
-    ├── seed-db.ts                    ← Seed database with test data
-    ├── ingest-precedent.ts           ← Ingest a precedent document
-    └── create-sample-deal.ts         ← Create a sample deal for testing
+├── config/                      ← Credentials (gitignored)
+├── scripts/                     ← Build and test scripts
+├── test-data/                   ← Test fixtures
+└── docs/
+    └── test-results/            ← Phase test reports
 ```
 
 ---
 
-## 5. DATABASE SCHEMA (SUPABASE)
+## 3. THREE-LAYER ARCHITECTURE
 
-All tables use Drizzle ORM for type-safe schema definition. The following is the logical schema — Drizzle generates the SQL migrations.
+### 3.1 Layer 1: Deterministic Code
 
-### 5.1 Core Tables
+Pure TypeScript logic. No AI involved. Cheap, reliable, predictable, testable.
 
+**What it handles:**
+- Checklist generation rules engine (deal parameters → document checklist)
+- Document lifecycle state machine (status transitions, validations)
+- Event propagation triggers (state change → downstream evaluation)
+- Dependency graph resolution (which items block which)
+- Cross-reference validation (defined terms, section references)
+- Timeline calculations (critical path, deadline warnings)
+- Data transformations (schema mappings, format conversions)
+- Approval routing (tier assignment based on policy configuration)
+
+**Design rule:** If the logic can be expressed as `if/then/else` with enumerated inputs and outputs, it belongs in Layer 1.
+
+### 3.2 Layer 2: Traditional AI API Calls
+
+Single-turn, scoped calls to Claude with structured inputs and outputs. Each call has a defined task, narrow context, and expected output schema.
+
+**What it handles:**
+- Term sheet parsing (text → Deal Parameter Object)
+- Email classification (email content → classification + extracted data)
+- Provision classification (contract text → provision type + variant)
+- Markup analysis (two document versions → provision-level change list)
+- Document drafting (parameters + precedent + instructions → draft text)
+- DD document analysis (VDR document + topic taxonomy → findings)
+- Disclosure schedule pre-population (DD findings → schedule entries)
+- Negotiation position extraction (email text → structured positions)
+- Quality scoring (provision text → quality assessment)
+- Client communication drafting (deal state + template → client-appropriate narrative)
+
+**Design rule:** If the task has a defined input, a defined output schema, and can be completed in a single reasoning pass without needing to decide what to look at next, it belongs in Layer 2.
+
+**Implementation:** All Layer 2 calls go through `packages/ai`. Every call has retry logic (3 attempts, exponential backoff), structured output validation, and cost tracking.
+
+**Prompt patterns (from existing implementation):**
+- System prompt defines the task, output schema, and constraints
+- User prompt contains the data to process
+- Response format is structured JSON with confidence scores
+- Models: `claude-sonnet-4-5-20250929` for most tasks, `claude-opus-4-6` for complex reasoning
+
+### 3.3 Layer 3: Agents
+
+Multi-step reasoning with tool access, persistent context, and autonomous decision-making. Agents decide what to investigate, what tools to use, when they have enough information, and what to recommend.
+
+**What it handles:**
+- Strategic synthesis across workstreams
+- Multi-step investigation (following inferential chains)
+- Proactive monitoring (identifying issues nobody asked about)
+- Negotiation strategy formulation
+- Inter-agent coordination and work routing
+- Gap recognition (identifying when capabilities are missing)
+- Quality review of Layer 1 and Layer 2 outputs
+
+**Design rule:** If the task requires deciding what information to gather, reasoning across multiple data sources, or exercising judgment that can't be reduced to a prompt template, it belongs in Layer 3.
+
+**Cost control:** Agents activate selectively (see Section 7.6 on activation triggers). Dormant mode uses Layers 1-2 only. Active mode invokes agents for specific purposes with defined scope.
+
+---
+
+## 4. DATABASE SCHEMA
+
+### 4.1 Existing Tables (Phases 0-2 — DO NOT RECREATE)
+
+#### users
 ```sql
--- Enable extensions (done manually in Supabase dashboard)
--- CREATE EXTENSION IF NOT EXISTS vector;
--- CREATE EXTENSION IF NOT EXISTS pg_trgm;
-
--- ============================================
--- USERS & AUTH
--- ============================================
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'attorney',  -- 'attorney', 'partner', 'paralegal', 'admin', 'external'
+  role TEXT NOT NULL DEFAULT 'attorney',
   firm TEXT,
-  google_access_token TEXT,               -- Not used (service account for Drive)
-  google_refresh_token TEXT,              -- Not used (service account for Drive)
-  microsoft_access_token TEXT,            -- Encrypted, for Outlook Graph API
-  microsoft_refresh_token TEXT,           -- Encrypted, for Outlook Graph API
+  google_access_token TEXT,
+  google_refresh_token TEXT,
+  microsoft_access_token TEXT,
+  microsoft_refresh_token TEXT,
   preferences JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+```
 
--- ============================================
--- DEALS
--- ============================================
+#### deals
+```sql
 CREATE TABLE deals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,                      -- "Project Mercury"
-  code_name TEXT,                          -- "Mercury"
-  status TEXT NOT NULL DEFAULT 'active',   -- 'active', 'closing', 'closed', 'terminated'
-
-  -- Deal Parameter Object (Section 2.1 of original spec)
+  name TEXT NOT NULL,
+  code_name TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
   parameters JSONB NOT NULL DEFAULT '{}',
-  -- Structure: {
-  --   transaction_structure: 'STOCK_PURCHASE' | 'ASSET_PURCHASE' | 'FORWARD_MERGER' | ...
-  --   entity_types: { seller: '...', target: '...', buyer: '...' },
-  --   consideration: ['CASH', 'SELLER_NOTE', ...],
-  --   price_adjustments: ['WORKING_CAPITAL_ADJ', 'EARNOUT', ...],
-  --   indemnification: 'TRADITIONAL' | 'RW_INSURANCE_PRIMARY' | ...,
-  --   escrow: boolean,
-  --   holdback: boolean,
-  --   regulatory: ['HSR_FILING', 'CFIUS', ...],
-  --   financing: { type: '...', condition: boolean },
-  --   key_employees: { treatment: '...', non_competes: boolean },
-  --   tsa: { required: boolean, direction: '...' },
-  --   is_carveout: boolean,
-  --   jurisdiction: 'DELAWARE' | 'NEW_YORK' | ...
-  -- }
-
-  -- Metadata
-  deal_value NUMERIC,                      -- Approximate deal value
-  industry TEXT,                            -- Target company industry
-  buyer_type TEXT,                          -- 'PE', 'STRATEGIC', 'CONSORTIUM'
+  deal_value NUMERIC,
+  industry TEXT,
+  buyer_type TEXT,
   target_name TEXT,
   buyer_name TEXT,
   seller_name TEXT,
-
-  -- Google Drive
-  drive_folder_id TEXT,                    -- Root Google Drive folder for this deal
+  drive_folder_id TEXT,
   drive_folder_url TEXT,
-
-  -- Outlook
-  deal_inbox_address TEXT,                 -- e.g., project.mercury@firm.com
-  email_thread_ids JSONB DEFAULT '[]',     -- Tracked Outlook conversation IDs
-
-  -- Timeline
+  deal_inbox_address TEXT,
+  email_thread_ids JSONB DEFAULT '[]',
   expected_signing_date DATE,
   expected_closing_date DATE,
   actual_signing_date DATE,
   actual_closing_date DATE,
-
-  -- Team
   lead_attorney_id UUID REFERENCES users(id),
   created_by UUID REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+```
 
+**ALTER TABLE for V2 (Phase 9):**
+```sql
+ALTER TABLE deals ADD COLUMN constitution JSONB;
+ALTER TABLE deals ADD COLUMN monitoring_level TEXT DEFAULT 'standard';
+```
+
+#### deal_team_members
+```sql
 CREATE TABLE deal_team_members (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
   user_id UUID REFERENCES users(id),
-  role TEXT NOT NULL,  -- 'lead', 'associate', 'paralegal', 'partner', 'specialist', 'client', 'counterparty'
-  permissions TEXT[] DEFAULT '{}',  -- ['read', 'write', 'publish', 'admin']
+  role TEXT NOT NULL,
+  permissions TEXT[] DEFAULT '{}',
   added_at TIMESTAMPTZ DEFAULT now()
 );
+```
 
--- ============================================
--- CHECKLIST
--- ============================================
+#### checklist_items
+```sql
 CREATE TABLE checklist_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
-  document_type TEXT NOT NULL,            -- 'SPA', 'APA', 'ESCROW_AGREEMENT', etc.
-  document_name TEXT NOT NULL,            -- Human-readable name
-  category TEXT,                          -- 'primary_agreement', 'ancillary', 'regulatory', 'employment', etc.
-  trigger_rule TEXT,                      -- The rule that generated this item
-  trigger_source TEXT NOT NULL,           -- 'deterministic', 'cim_enrichment', 'dd_driven', 'third_party', 'manual'
-
-  -- Lifecycle state machine
+  document_type TEXT NOT NULL,
+  document_name TEXT NOT NULL,
+  category TEXT,
+  trigger_rule TEXT,
+  trigger_source TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'identified',
-  -- 'identified' → 'template_set' → 'precedent_set' → 'scrubbed' → 'adapted'
-  -- → 'attorney_reviewed' → 'sent_to_counter' → 'markup_received'
-  -- → 'response_draft' → 'final' → 'executed' → 'filed'
-
-  -- Assignments
-  ball_with TEXT,                         -- 'us', 'counterparty', 'third_party', 'client'
+  ball_with TEXT,
   assigned_to UUID REFERENCES users(id),
   due_date DATE,
-  priority TEXT DEFAULT 'normal',         -- 'critical', 'high', 'normal', 'low'
-
-  -- Dependencies
-  depends_on UUID[],                      -- Other checklist item IDs this depends on
-  blocks UUID[],                          -- Items this blocks
-
-  -- Document reference
-  current_document_version_id UUID,       -- FK to document_versions
-  drive_file_id TEXT,                     -- Google Drive file ID
-
-  -- Metadata
+  priority TEXT DEFAULT 'normal',
+  depends_on UUID[],
+  blocks UUID[],
+  current_document_version_id UUID,
+  drive_file_id TEXT,
   notes TEXT,
   sort_order INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+```
 
--- ============================================
--- DOCUMENT VERSIONS
--- ============================================
+**ALTER TABLE for V2 (Phase 6):**
+```sql
+ALTER TABLE checklist_items ADD COLUMN closing_checklist_id UUID;
+```
+
+#### document_versions
+```sql
 CREATE TABLE document_versions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   checklist_item_id UUID REFERENCES checklist_items(id) ON DELETE CASCADE,
   deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
-
-  version_number INTEGER NOT NULL,         -- 1, 2, 3, ...
-  version_label TEXT NOT NULL,             -- 'v1_template', 'v2_precedent', 'v3_scrubbed', 'v4_adapted', 'counterparty_markup_1', etc.
-  version_type TEXT NOT NULL,              -- 'template', 'precedent_applied', 'scrubbed', 'adapted', 'attorney_reviewed', 'counterparty_markup', 'response', 'final', 'executed'
-
-  -- Storage
-  file_path TEXT,                          -- Supabase Storage path
-  drive_file_id TEXT,                      -- Google Drive file ID
-  file_hash TEXT,                          -- SHA-256 for change detection
+  version_number INTEGER NOT NULL,
+  version_label TEXT NOT NULL,
+  version_type TEXT NOT NULL,
+  file_path TEXT,
+  drive_file_id TEXT,
+  file_hash TEXT,
   file_size_bytes INTEGER,
-
-  -- Analysis
-  change_summary JSONB,                    -- Structured summary of changes from prior version
-  provision_changes JSONB,                 -- Provision-level change detail
-
-  -- Provenance
-  source TEXT,                             -- 'system_generated', 'attorney_edit', 'counterparty', 'third_party'
-  source_email_id UUID,                    -- If received via email, link to email record
+  change_summary JSONB,
+  provision_changes JSONB,
+  source TEXT,
+  source_email_id UUID,
   created_by UUID REFERENCES users(id),
-
   created_at TIMESTAMPTZ DEFAULT now()
 );
+```
 
--- ============================================
--- PROVISION TAXONOMY & FORMULATIONS
--- ============================================
+#### provision_types
+```sql
 CREATE TABLE provision_types (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT UNIQUE NOT NULL,               -- 'indemnification.basket.type'
-  name TEXT NOT NULL,                      -- 'Indemnification Basket Type'
-  category TEXT NOT NULL,                  -- 'indemnification', 'purchase_price', 'closing_conditions', etc.
-  parent_code TEXT,                        -- For hierarchy: 'indemnification.basket'
+  code TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  parent_code TEXT,
   description TEXT,
-  applicable_doc_types TEXT[],             -- ['SPA', 'APA', 'MERGER_AGREEMENT']
+  applicable_doc_types TEXT[],
   sort_order INTEGER DEFAULT 0
 );
+```
 
+#### provision_variants
+```sql
 CREATE TABLE provision_variants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   provision_type_id UUID REFERENCES provision_types(id),
-  code TEXT NOT NULL,                      -- 'tipping_basket', 'true_deductible', etc.
+  code TEXT NOT NULL,
   name TEXT NOT NULL,
   description TEXT,
-  buyer_favorability DECIMAL(3,2),         -- 0.00 (seller-favorable) to 1.00 (buyer-favorable)
-  market_frequency DECIMAL(3,2),           -- 0.00 to 1.00, how common in market
+  buyer_favorability DECIMAL(3,2),
+  market_frequency DECIMAL(3,2),
   metadata JSONB DEFAULT '{}'
 );
+```
 
+#### provision_formulations
+```sql
 CREATE TABLE provision_formulations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   provision_type_id UUID REFERENCES provision_types(id),
   variant_id UUID REFERENCES provision_variants(id),
-
-  -- The actual contract language
   text TEXT NOT NULL,
-  text_embedding vector(1024),             -- Voyage: 1024d, or OpenAI: change to 1536
-
-  -- Source
-  source_deal_id UUID,                     -- Which deal this came from
+  text_embedding vector(1024),
+  source_deal_id UUID,
   source_document_type TEXT,
-  source_firm TEXT,                         -- Originating firm (for style matching)
-
-  -- Metadata
+  source_firm TEXT,
   favorability_score DECIMAL(3,2),
-  negotiation_outcome TEXT,                -- 'accepted', 'modified', 'rejected'
-  deal_size_range TEXT,                    -- 'under_50m', '50m_250m', '250m_1b', 'over_1b'
+  negotiation_outcome TEXT,
+  deal_size_range TEXT,
   industry TEXT,
   year INTEGER,
-
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Vector similarity search index
 CREATE INDEX ON provision_formulations USING ivfflat (text_embedding vector_cosine_ops) WITH (lists = 100);
+```
 
--- ============================================
--- DUE DILIGENCE
--- ============================================
+**ALTER TABLE for V2 (Phase 10) — quality scoring fields:**
+```sql
+ALTER TABLE provision_formulations ADD COLUMN firm_tier DECIMAL(3,2);
+ALTER TABLE provision_formulations ADD COLUMN deal_size_score DECIMAL(3,2);
+ALTER TABLE provision_formulations ADD COLUMN recency_score DECIMAL(3,2);
+ALTER TABLE provision_formulations ADD COLUMN structural_quality_score DECIMAL(3,2);
+ALTER TABLE provision_formulations ADD COLUMN corpus_alignment_score DECIMAL(3,2);
+ALTER TABLE provision_formulations ADD COLUMN composite_quality_score DECIMAL(3,2);
+```
+
+#### dd_topics
+```sql
 CREATE TABLE dd_topics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT UNIQUE NOT NULL,               -- 'corporate.organization.formation'
+  code TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
-  workstream TEXT NOT NULL,                -- 'corporate', 'employment', 'ip', 'tax', 'environmental', etc.
+  workstream TEXT NOT NULL,
   parent_code TEXT,
   description TEXT,
   sort_order INTEGER DEFAULT 0
 );
+```
 
+#### dd_findings
+```sql
 CREATE TABLE dd_findings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
   topic_id UUID REFERENCES dd_topics(id),
-
   summary TEXT NOT NULL,
   detail TEXT,
-  risk_level TEXT NOT NULL,                -- 'critical', 'high', 'medium', 'low', 'informational'
-  risk_type TEXT,                          -- 'deal_breaker', 'price_adjustment', 'indemnification_item', 'post_closing_fix', 'disclosure_item', 'monitor', 'no_action'
-
-  -- Exposure
+  risk_level TEXT NOT NULL,
+  risk_type TEXT,
   exposure_low NUMERIC,
   exposure_mid NUMERIC,
   exposure_high NUMERIC,
   exposure_basis TEXT,
-
-  -- Impact on transaction documents
-  affects_provisions JSONB DEFAULT '[]',   -- [{provision_type: '...', action: 'enhance_rep', detail: '...'}]
+  affects_provisions JSONB DEFAULT '[]',
   affects_checklist_items UUID[],
-
-  -- Source
-  source_documents JSONB DEFAULT '[]',     -- [{vdr_path: '...', file_name: '...'}]
+  source_documents JSONB DEFAULT '[]',
   source_qa_entries JSONB DEFAULT '[]',
-
-  -- Status
-  status TEXT DEFAULT 'draft',             -- 'draft', 'confirmed', 'resolved', 'not_applicable'
+  status TEXT DEFAULT 'draft',
   confirmed_by UUID REFERENCES users(id),
-
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+```
 
--- ============================================
--- EMAIL TRACKING
--- ============================================
+#### deal_emails
+```sql
 CREATE TABLE deal_emails (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
-
-  -- Outlook data
   outlook_message_id TEXT UNIQUE,
   outlook_conversation_id TEXT,
-  thread_id TEXT,                          -- Our internal thread grouping
-
-  -- Email metadata
+  thread_id TEXT,
   subject TEXT NOT NULL,
   sender_email TEXT NOT NULL,
   sender_name TEXT,
-  recipients JSONB,                        -- [{email, name, type: 'to'|'cc'|'bcc'}]
+  recipients JSONB,
   received_at TIMESTAMPTZ NOT NULL,
-
-  -- Classification
-  classification TEXT,                     -- 'markup_delivery', 'comment_letter', 'dd_response', 'scheduling', 'general', 'unclassified'
+  classification TEXT,
   classification_confidence DECIMAL(3,2),
   related_checklist_items UUID[],
   related_document_versions UUID[],
-
-  -- Content
-  body_preview TEXT,                       -- First ~500 chars
-  body_text TEXT,                          -- Full plain text
+  body_preview TEXT,
+  body_text TEXT,
   body_embedding vector(1024),
-
-  -- Attachments
   has_attachments BOOLEAN DEFAULT false,
-  attachments JSONB DEFAULT '[]',          -- [{filename, size, content_type, drive_file_id, processed: boolean}]
-
-  -- Processing status
-  processing_status TEXT DEFAULT 'pending', -- 'pending', 'classified', 'processed', 'error'
+  attachments JSONB DEFAULT '[]',
+  processing_status TEXT DEFAULT 'pending',
   action_items JSONB DEFAULT '[]',
-
   created_at TIMESTAMPTZ DEFAULT now()
 );
+```
 
--- ============================================
--- GOOGLE DRIVE SYNC
--- ============================================
+**ALTER TABLE for V2 (Phase 5):**
+```sql
+ALTER TABLE deal_emails ADD COLUMN extracted_positions JSONB;
+ALTER TABLE deal_emails ADD COLUMN extracted_action_items JSONB;
+```
+
+#### drive_sync_records
+```sql
 CREATE TABLE drive_sync_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
   checklist_item_id UUID REFERENCES checklist_items(id),
   document_version_id UUID REFERENCES document_versions(id),
-
-  -- Our side
   internal_file_path TEXT,
   internal_file_hash TEXT,
-
-  -- Drive side
   drive_file_id TEXT NOT NULL,
   drive_file_name TEXT,
   drive_modified_time TIMESTAMPTZ,
   drive_file_hash TEXT,
-
-  -- Sync state
-  sync_status TEXT DEFAULT 'in_sync',      -- 'in_sync', 'pending_push', 'pending_pull', 'conflict', 'error'
-  sync_direction TEXT,                     -- 'push', 'pull'
+  sync_status TEXT DEFAULT 'in_sync',
+  sync_direction TEXT,
   last_synced_at TIMESTAMPTZ,
   conflict_details JSONB,
-
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+```
 
--- ============================================
--- DEAL AGENT MEMORY
--- ============================================
+#### deal_agent_memory
+```sql
 CREATE TABLE deal_agent_memory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
-  memory_type TEXT NOT NULL,               -- 'state_summary', 'attorney_preference', 'decision_record', 'flag'
+  memory_type TEXT NOT NULL,
   content JSONB NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+```
 
--- ============================================
--- ACTIVITY LOG
--- ============================================
+**Note:** `memory_type` values extended in V2 to include: `'state_summary'`, `'attorney_preference'`, `'decision_record'`, `'flag'`, `'negotiation_context'`, `'agent_observation'`, `'skill_gap'`.
+
+#### activity_log
+```sql
 CREATE TABLE activity_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
   actor_id UUID REFERENCES users(id),
-  actor_type TEXT DEFAULT 'user',          -- 'user', 'system', 'agent'
-  action TEXT NOT NULL,                    -- 'created_deal', 'parsed_term_sheet', 'generated_checklist', 'uploaded_document', etc.
-  entity_type TEXT,                        -- 'deal', 'checklist_item', 'document_version', 'email', 'dd_finding'
+  actor_type TEXT DEFAULT 'user',
+  action TEXT NOT NULL,
+  entity_type TEXT,
   entity_id UUID,
   details JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
-### 5.2 Row-Level Security Policies
+### 4.2 New Tables (Phases 3-14 — TO BE CREATED)
+
+#### propagation_events (Phase 3)
+```sql
+CREATE TABLE propagation_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,
+  source_entity_type TEXT NOT NULL,
+  source_entity_id UUID NOT NULL,
+  payload JSONB NOT NULL DEFAULT '{}',
+  significance INTEGER NOT NULL DEFAULT 3 CHECK (significance BETWEEN 1 AND 5),
+  processed BOOLEAN DEFAULT false,
+  processed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_propagation_events_unprocessed ON propagation_events (deal_id, processed) WHERE processed = false;
+CREATE INDEX idx_propagation_events_type ON propagation_events (event_type);
+```
+
+#### action_chains (Phase 3)
+```sql
+CREATE TABLE action_chains (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  trigger_event_id UUID REFERENCES propagation_events(id),
+  summary TEXT NOT NULL,
+  significance INTEGER NOT NULL DEFAULT 3 CHECK (significance BETWEEN 1 AND 5),
+  approval_tier INTEGER NOT NULL CHECK (approval_tier BETWEEN 1 AND 3),
+  status TEXT NOT NULL DEFAULT 'pending',
+  approved_at TIMESTAMPTZ,
+  approved_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_action_chains_pending ON action_chains (status) WHERE status = 'pending';
+```
+
+#### proposed_actions (Phase 3)
+```sql
+CREATE TABLE proposed_actions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  chain_id UUID REFERENCES action_chains(id) ON DELETE CASCADE,
+  sequence_order INTEGER NOT NULL,
+  depends_on UUID[] DEFAULT '{}',
+  action_type TEXT NOT NULL,
+  target_entity_type TEXT,
+  target_entity_id UUID,
+  payload JSONB NOT NULL DEFAULT '{}',
+  preview JSONB NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending',
+  execution_result JSONB,
+  constitutional_violation BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  executed_at TIMESTAMPTZ
+);
+```
+
+#### approval_policies (Phase 4)
+```sql
+CREATE TABLE approval_policies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id),
+  role TEXT,
+  rules JSONB NOT NULL DEFAULT '[]',
+  is_default BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### agent_activations (Phase 4)
+```sql
+CREATE TABLE agent_activations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  agent_type TEXT NOT NULL,
+  trigger_type TEXT NOT NULL,
+  trigger_source TEXT,
+  input_tokens INTEGER DEFAULT 0,
+  output_tokens INTEGER DEFAULT 0,
+  total_cost_usd NUMERIC(10,4) DEFAULT 0,
+  model_used TEXT,
+  steps INTEGER DEFAULT 0,
+  tool_calls INTEGER DEFAULT 0,
+  specialist_invocations INTEGER DEFAULT 0,
+  started_at TIMESTAMPTZ DEFAULT now(),
+  completed_at TIMESTAMPTZ,
+  duration_ms INTEGER,
+  result_summary TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### disclosure_schedules (Phase 5)
+```sql
+CREATE TABLE disclosure_schedules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  checklist_item_id UUID REFERENCES checklist_items(id),
+  schedule_number TEXT NOT NULL,
+  schedule_title TEXT NOT NULL,
+  related_rep_section TEXT NOT NULL,
+  related_rep_text TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  questionnaire_sent_at TIMESTAMPTZ,
+  client_response_received_at TIMESTAMPTZ,
+  last_cross_reference_check TIMESTAMPTZ,
+  cross_reference_issues JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### disclosure_entries (Phase 5)
+```sql
+CREATE TABLE disclosure_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  schedule_id UUID REFERENCES disclosure_schedules(id) ON DELETE CASCADE,
+  entry_text TEXT NOT NULL,
+  entry_type TEXT,
+  source_dd_finding_id UUID REFERENCES dd_findings(id),
+  source_client_response TEXT,
+  source_email_id UUID REFERENCES deal_emails(id),
+  status TEXT DEFAULT 'draft',
+  confirmed_by UUID REFERENCES users(id),
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### negotiation_positions (Phase 5)
+```sql
+CREATE TABLE negotiation_positions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  provision_type TEXT NOT NULL,
+  provision_label TEXT NOT NULL,
+  our_current_position TEXT,
+  our_current_position_detail JSONB,
+  their_current_position TEXT,
+  their_current_position_detail JSONB,
+  position_history JSONB DEFAULT '[]',
+  status TEXT DEFAULT 'open',
+  agreed_position TEXT,
+  agreed_position_detail JSONB,
+  significance INTEGER DEFAULT 3,
+  financial_impact BOOLEAN DEFAULT false,
+  constitutional_constraint BOOLEAN DEFAULT false,
+  last_updated_from TEXT,
+  last_updated_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### deal_third_parties (Phase 6)
+```sql
+CREATE TABLE deal_third_parties (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,
+  firm_name TEXT NOT NULL,
+  contact_name TEXT,
+  contact_email TEXT,
+  deliverables JSONB DEFAULT '[]',
+  last_communication_at TIMESTAMPTZ,
+  outstanding_items TEXT[],
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### client_contacts (Phase 6)
+```sql
+CREATE TABLE client_contacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  role TEXT,
+  is_primary BOOLEAN DEFAULT false,
+  communication_preferences JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### client_action_items (Phase 6)
+```sql
+CREATE TABLE client_action_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  client_contact_id UUID REFERENCES client_contacts(id),
+  description TEXT NOT NULL,
+  detail TEXT,
+  category TEXT,
+  due_date DATE,
+  priority TEXT DEFAULT 'normal',
+  blocks_checklist_items UUID[],
+  related_disclosure_schedule_id UUID,
+  status TEXT DEFAULT 'pending',
+  sent_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  follow_up_count INTEGER DEFAULT 0,
+  last_follow_up_at TIMESTAMPTZ,
+  next_follow_up_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### client_communications (Phase 6)
+```sql
+CREATE TABLE client_communications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  client_contact_id UUID REFERENCES client_contacts(id),
+  type TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  status TEXT DEFAULT 'draft',
+  approved_by UUID REFERENCES users(id),
+  sent_at TIMESTAMPTZ,
+  generated_by TEXT DEFAULT 'system',
+  trigger_event_id UUID,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### closing_checklists (Phase 6)
+```sql
+CREATE TABLE closing_checklists (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'draft',
+  target_closing_date DATE,
+  conditions_satisfied INTEGER DEFAULT 0,
+  conditions_total INTEGER DEFAULT 0,
+  conditions_waived INTEGER DEFAULT 0,
+  funds_flow JSONB,
+  wire_instructions_confirmed BOOLEAN DEFAULT false,
+  signature_pages_collected JSONB DEFAULT '{}',
+  signature_pages_released BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### closing_conditions (Phase 6)
+```sql
+CREATE TABLE closing_conditions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  closing_checklist_id UUID REFERENCES closing_checklists(id) ON DELETE CASCADE,
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  description TEXT NOT NULL,
+  condition_type TEXT NOT NULL,
+  category TEXT,
+  responsible_party TEXT,
+  status TEXT DEFAULT 'pending',
+  satisfied_at TIMESTAMPTZ,
+  evidence TEXT,
+  evidence_document_id UUID,
+  blocks_closing BOOLEAN DEFAULT true,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### closing_deliverables (Phase 6)
+```sql
+CREATE TABLE closing_deliverables (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  closing_checklist_id UUID REFERENCES closing_checklists(id) ON DELETE CASCADE,
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  description TEXT NOT NULL,
+  deliverable_type TEXT,
+  responsible_party TEXT NOT NULL,
+  due_date DATE,
+  status TEXT DEFAULT 'pending',
+  received_at TIMESTAMPTZ,
+  document_version_id UUID,
+  drive_file_id TEXT,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### post_closing_obligations (Phase 6)
+```sql
+CREATE TABLE post_closing_obligations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  description TEXT NOT NULL,
+  obligation_type TEXT,
+  responsible_party TEXT NOT NULL,
+  deadline DATE,
+  recurring BOOLEAN DEFAULT false,
+  recurrence_interval TEXT,
+  status TEXT DEFAULT 'pending',
+  completed_at TIMESTAMPTZ,
+  estimated_value NUMERIC,
+  actual_value NUMERIC,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### negotiation_roadmaps (Phase 5)
+```sql
+CREATE TABLE negotiation_roadmaps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  overall_strategy TEXT,
+  strategy_rationale TEXT,
+  provision_plans JSONB DEFAULT '[]',
+  round_summaries JSONB DEFAULT '[]',
+  strategy_adjustments JSONB DEFAULT '[]',
+  version INTEGER DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### deal_knowledge (Phase 14)
+```sql
+CREATE TABLE deal_knowledge (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id),
+  knowledge_type TEXT NOT NULL,
+  content JSONB NOT NULL,
+  confidence DECIMAL(3,2),
+  sample_size INTEGER DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### feedback_events (Phase 14)
+```sql
+CREATE TABLE feedback_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id),
+  event_type TEXT NOT NULL,
+  target_type TEXT NOT NULL,
+  target_id UUID NOT NULL,
+  original_output JSONB,
+  modified_output JSONB,
+  modification_delta JSONB,
+  annotation TEXT,
+  agent_context_summary TEXT,
+  agent_confidence DECIMAL(3,2),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### skills_registry (Phase 8)
+```sql
+CREATE TABLE skills_registry (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  skill_id TEXT UNIQUE NOT NULL,
+  type TEXT NOT NULL,
+  path TEXT NOT NULL,
+  version TEXT DEFAULT '1.0',
+  quality_score DECIMAL(3,2) DEFAULT 0.50,
+  applicable_agents TEXT[] DEFAULT '{}',
+  applicable_tasks TEXT[] DEFAULT '{}',
+  depends_on TEXT[] DEFAULT '{}',
+  source TEXT DEFAULT 'static',
+  last_updated TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### observer_changelog (Phase 11)
+```sql
+CREATE TABLE observer_changelog (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  change_type TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  description TEXT NOT NULL,
+  diagnosis TEXT,
+  git_commit_hash TEXT,
+  test_results JSONB,
+  reverted BOOLEAN DEFAULT false,
+  reverted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### 4.3 Row-Level Security
 
 ```sql
--- Enable RLS on all tables
 ALTER TABLE deals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE checklist_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE document_versions ENABLE ROW LEVEL SECURITY;
--- ... etc for all tables
-
--- Example policy: users can only see deals they're on the team for
-CREATE POLICY "Users see own deals" ON deals
-  FOR SELECT USING (
-    id IN (
-      SELECT deal_id FROM deal_team_members
-      WHERE user_id = auth.uid()
-    )
-  );
-
--- Service role key bypasses RLS (used by backend)
+-- (RLS policies for all tables — service role key bypasses RLS)
 ```
 
 ---
 
-## 6. BACKEND API SPECIFICATION
+## 5. EVENT PROPAGATION BACKBONE
 
-All API routes are Next.js App Router API routes in `apps/web/app/api/`.
+### 5.1 Core Concepts
 
-### 6.1 Authentication
+**Propagation Event:** A record that something meaningful changed in the deal state. Every significant database write emits a propagation event.
 
-**`POST /api/auth/[...nextauth]`** — NextAuth.js handles Microsoft OAuth (for Outlook email access).
+**Consequence Resolver:** The module that evaluates a propagation event and determines what downstream actions are needed. Uses Layer 1 (deterministic rules) for known consequence patterns and Layer 2 (API calls) for non-obvious connections.
 
-NextAuth config (`apps/web/lib/auth.ts`):
+**Action Chain:** An ordered list of proposed actions generated by the consequence resolver. Represents a complete response to an event — all the things that should happen as a result.
+
+**Proposed Action:** A single concrete action within an action chain. Fully specified: what to do, to what artifact, with what content. Ready to execute on approval.
+
+### 5.2 Event Types
+
 ```typescript
-// Providers: Microsoft (for Outlook/Graph API email access)
-// Google Drive uses Service Account — no user OAuth needed
-// Callbacks: store Microsoft access/refresh tokens in users table
-// Session strategy: JWT
+type PropagationEventType =
+  // Deal-level events
+  | 'deal.created'
+  | 'deal.parameters_updated'
+  | 'deal.status_changed'
+  | 'deal.timeline_updated'
+
+  // Checklist events
+  | 'checklist.generated'
+  | 'checklist.item_status_changed'
+  | 'checklist.item_assigned'
+  | 'checklist.item_overdue'
+  | 'checklist.dependency_resolved'
+
+  // Document events
+  | 'document.version_created'
+  | 'document.markup_received'
+  | 'document.markup_analyzed'
+  | 'document.sent_to_counterparty'
+  | 'document.attorney_reviewed'
+
+  // DD events
+  | 'dd.finding_created'
+  | 'dd.finding_confirmed'
+  | 'dd.finding_resolved'
+  | 'dd.coverage_gap_identified'
+  | 'dd.request_sent'
+  | 'dd.response_received'
+
+  // Email events
+  | 'email.received'
+  | 'email.classified'
+  | 'email.position_extracted'
+  | 'email.action_item_identified'
+  | 'email.attachment_processed'
+
+  // Negotiation events
+  | 'negotiation.position_updated'
+  | 'negotiation.concession_detected'
+  | 'negotiation.impasse_detected'
+  | 'negotiation.round_completed'
+
+  // Disclosure schedule events
+  | 'disclosure.schedule_updated'
+  | 'disclosure.gap_identified'
+  | 'disclosure.client_response_received'
+  | 'disclosure.cross_reference_broken'
+
+  // Third-party events
+  | 'third_party.deliverable_received'
+  | 'third_party.deliverable_overdue'
+  | 'third_party.communication_received'
+
+  // Client events
+  | 'client.action_item_created'
+  | 'client.action_item_completed'
+  | 'client.communication_needed'
+  | 'client.approval_requested'
+
+  // Closing events
+  | 'closing.condition_satisfied'
+  | 'closing.condition_waived'
+  | 'closing.deliverable_received'
+  | 'closing.blocking_issue_identified'
+
+  // System events
+  | 'system.deadline_approaching'
+  | 'system.critical_path_changed'
+  | 'system.agent_activation_triggered';
 ```
 
-### 6.2 Deal CRUD
+### 5.3 Propagation Event Interface
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/deals` | List all deals for current user |
-| `POST` | `/api/deals` | Create new deal |
-| `GET` | `/api/deals/[dealId]` | Get deal details + parameters |
-| `PATCH` | `/api/deals/[dealId]` | Update deal parameters/metadata |
-| `DELETE` | `/api/deals/[dealId]` | Archive deal |
-
-### 6.3 Term Sheet & Checklist
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/deals/[dealId]/parse-term-sheet` | Upload term sheet → extract Deal Parameter Object |
-| `POST` | `/api/deals/[dealId]/generate-checklist` | Generate checklist from parameters |
-| `GET` | `/api/deals/[dealId]/checklist` | Get checklist items |
-| `PATCH` | `/api/deals/[dealId]/checklist/[itemId]` | Update checklist item status/assignment |
-
-### 6.4 Documents
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/deals/[dealId]/documents` | List all document versions |
-| `POST` | `/api/deals/[dealId]/documents/generate` | Trigger document generation pipeline for a checklist item |
-| `POST` | `/api/deals/[dealId]/documents/upload` | Upload a document (e.g., counterparty markup) |
-| `POST` | `/api/deals/[dealId]/documents/analyze-markup` | Analyze counterparty markup against last version |
-| `GET` | `/api/deals/[dealId]/documents/[docId]` | Get document version detail |
-| `GET` | `/api/deals/[dealId]/documents/[docId]/download` | Download document file |
-
-### 6.5 Precedent & Intelligence
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/precedent/search` | Semantic search across provision formulations |
-| `GET` | `/api/precedent/whats-market?provision_type=...&deal_profile=...` | Market data for a provision type |
-| `POST` | `/api/precedent/ingest` | Ingest a new precedent document |
-
-### 6.6 Email
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/deals/[dealId]/emails` | List classified emails for deal |
-| `POST` | `/api/deals/[dealId]/emails/sync` | Trigger Outlook sync for deal inbox |
-| `POST` | `/api/deals/[dealId]/emails/classify` | Classify a specific email |
-
-### 6.7 Due Diligence
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/deals/[dealId]/diligence` | Get DD schema and findings |
-| `POST` | `/api/deals/[dealId]/diligence/generate-schema` | Generate DD schema from deal parameters |
-| `POST` | `/api/deals/[dealId]/diligence/process-document` | Process a VDR document |
-| `POST` | `/api/deals/[dealId]/diligence/findings` | Create/update a DD finding |
-
-### 6.8 Google Drive
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/drive/create-deal-folder` | Create deal folder structure in Drive |
-| `GET` | `/api/drive/list/[folderId]` | List files in a Drive folder |
-| `POST` | `/api/drive/upload` | Upload a file to Drive |
-| `GET` | `/api/drive/download/[fileId]` | Download a file from Drive |
-| `POST` | `/api/drive/sync/[dealId]` | Trigger sync for a deal |
-
----
-
-## 7. COWORK PLUGIN SPECIFICATION
-
-### 7.1 Plugin Manifest
-
-**`cowork-plugin/.claude-plugin/plugin.json`**:
-```json
-{
-  "name": "ma-deal-os",
-  "version": "0.1.0",
-  "displayName": "M&A Deal Operating System",
-  "description": "Automates M&A transaction management: checklist generation, document drafting, due diligence, negotiation support, and email processing.",
-  "author": "Your Firm",
-  "skills": [
-    "skills/deal-parameters",
-    "skills/checklist-engine",
-    "skills/document-pipeline",
-    "skills/precedent-intelligence",
-    "skills/markup-analysis",
-    "skills/email-processing",
-    "skills/due-diligence"
-  ],
-  "commands": [
-    "commands/parse-term-sheet",
-    "commands/generate-checklist",
-    "commands/review-document",
-    "commands/analyze-markup",
-    "commands/whats-market",
-    "commands/morning-briefing",
-    "commands/deal-status",
-    "commands/dd-summary"
-  ]
+```typescript
+interface PropagationEvent {
+  id: string;
+  deal_id: string;
+  event_type: PropagationEventType;
+  source_entity_type: string;
+  source_entity_id: string;
+  payload: Record<string, any>;
+  significance: 1 | 2 | 3 | 4 | 5;
+  created_at: string;
+  processed: boolean;
+  processed_at?: string;
 }
 ```
 
-### 7.2 MCP Configuration
+### 5.4 Consequence Resolution Flow
 
-**`cowork-plugin/.mcp.json`**:
-```json
-{
-  "mcpServers": {
-    "ma-deal-os": {
-      "command": "node",
-      "args": ["../packages/mcp-server/dist/index.js"],
-      "env": {
-        "SUPABASE_URL": "${SUPABASE_URL}",
-        "SUPABASE_SERVICE_ROLE_KEY": "${SUPABASE_SERVICE_ROLE_KEY}",
-        "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}"
-      }
-    },
-    "google-drive": {
-      "command": "npx",
-      "args": ["@piotr-agier/google-drive-mcp"],
-      "env": {
-        "GOOGLE_DRIVE_OAUTH_CREDENTIALS": "${HOME}/.config/ma-deal-os/gcp-oauth.keys.json"
-      }
-    }
+```
+Event Emitted
+     │
+     ▼
+┌─────────────────────┐
+│  Layer 1: Rules      │  Deterministic consequence mapping
+│  (always runs)       │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Layer 2: API Call   │  Non-obvious connection detection
+│  (runs if needed)    │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Significance Check  │  Agent activation threshold
+└──────────┬──────────┘
+           │
+      ┌────┴────┐
+   Low (1-2)  High (3-5)
+      │         │
+      ▼         ▼
+┌──────────┐ ┌──────────────┐
+│ Generate │ │ Layer 3:     │
+│ Actions  │ │ Agent Review │
+│ Directly │ │ + Synthesis  │
+└────┬─────┘ └──────┬───────┘
+     │               │
+     ▼               ▼
+┌─────────────────────────┐
+│  Action Chain Created    │
+│  → Approval Queue        │
+└─────────────────────────┘
+```
+
+### 5.5 Deterministic Consequence Maps
+
+Implemented in `packages/core/src/rules/consequence-maps.ts`.
+
+```typescript
+const consequenceMaps: ConsequenceMap[] = [
+  {
+    trigger: 'dd.finding_confirmed',
+    conditions: [
+      { field: 'payload.risk_level', in: ['critical', 'high'] }
+    ],
+    consequences: [
+      { type: 'document_modification', target: 'affected_provisions', action: 'propose_enhancement', priority: 'high' },
+      { type: 'disclosure_schedule_update', target: 'matching_schedule', action: 'add_entry', priority: 'high' },
+      { type: 'notification', target: 'deal_lead', action: 'alert', priority: 'immediate' },
+      { type: 'client_communication', target: 'client_contact', action: 'draft_notification', priority: 'normal' }
+    ]
+  },
+  {
+    trigger: 'document.markup_received',
+    consequences: [
+      { type: 'analysis', action: 'analyze_markup', priority: 'high' },
+      { type: 'negotiation_update', action: 'extract_positions', priority: 'high' },
+      { type: 'checklist_update', target: 'related_checklist_item', action: 'update_status_to_markup_received', priority: 'normal' },
+      { type: 'checklist_update', target: 'related_checklist_item', action: 'update_ball_with_to_us', priority: 'normal' }
+    ]
+  },
+  {
+    trigger: 'email.position_extracted',
+    consequences: [
+      { type: 'negotiation_update', action: 'update_provision_positions', priority: 'normal' },
+      { type: 'agent_evaluation', action: 'assess_negotiation_impact', priority: 'normal' }
+    ]
+  },
+  {
+    trigger: 'checklist.item_overdue',
+    consequences: [
+      { type: 'notification', target: 'assigned_attorney', action: 'overdue_alert', priority: 'high' },
+      { type: 'critical_path_update', action: 'recalculate', priority: 'normal' }
+    ]
+  },
+  {
+    trigger: 'deal.parameters_updated',
+    consequences: [
+      { type: 'checklist_regeneration', action: 'diff_and_update', priority: 'high' },
+      { type: 'document_review', action: 'flag_affected_provisions', priority: 'normal' }
+    ]
+  },
+  {
+    trigger: 'closing.condition_satisfied',
+    consequences: [
+      { type: 'closing_checklist_update', action: 'mark_condition_met', priority: 'normal' },
+      { type: 'closing_readiness_check', action: 'evaluate_all_conditions', priority: 'normal' }
+    ]
+  }
+];
+```
+
+### 5.6 Action Chain Structure
+
+```typescript
+interface ActionChain {
+  id: string;
+  deal_id: string;
+  trigger_event_id: string;
+  summary: string;
+  significance: 1 | 2 | 3 | 4 | 5;
+  approval_tier: 1 | 2 | 3;
+  status: 'pending' | 'approved' | 'partially_approved' | 'rejected' | 'expired';
+  actions: ProposedAction[];
+  created_at: string;
+  approved_at?: string;
+  approved_by?: string;
+}
+
+interface ProposedAction {
+  id: string;
+  chain_id: string;
+  sequence_order: number;
+  depends_on: string[];
+  action_type: ProposedActionType;
+  target_entity_type: string;
+  target_entity_id?: string;
+  payload: Record<string, any>;
+  preview: {
+    title: string;
+    description: string;
+    diff?: string;
+    draft?: string;
+  };
+  status: 'pending' | 'approved' | 'rejected' | 'executed' | 'failed';
+  execution_result?: Record<string, any>;
+  constitutional_violation?: boolean;
+  created_at: string;
+  executed_at?: string;
+}
+
+type ProposedActionType =
+  | 'document_edit'
+  | 'document_generate'
+  | 'checklist_status_update'
+  | 'checklist_ball_with_update'
+  | 'checklist_add_item'
+  | 'disclosure_schedule_entry'
+  | 'disclosure_schedule_remove'
+  | 'email_draft'
+  | 'email_send'
+  | 'dd_finding_create'
+  | 'dd_request_create'
+  | 'negotiation_position_update'
+  | 'client_action_item_create'
+  | 'client_communication_draft'
+  | 'third_party_communication'
+  | 'closing_checklist_update'
+  | 'notification'
+  | 'agent_activation'
+  | 'status_update'
+  | 'timeline_update';
+```
+
+### 5.7 Event Bus Implementation
+
+```typescript
+// packages/core/src/events/event-bus.ts
+
+export class EventBus {
+  async emit(event: Omit<PropagationEvent, 'id' | 'created_at' | 'processed'>): Promise<string> {
+    // 1. Write event to propagation_events table
+    // 2. Trigger consequence resolution (async)
+    // 3. Return event ID
+  }
+
+  async process(eventId: string): Promise<ActionChain[]> {
+    // 1. Load event
+    // 2. Run Layer 1 deterministic consequence maps
+    // 3. If needed, run Layer 2 API call for non-obvious connections
+    // 4. Evaluate significance for potential Layer 3 agent activation
+    // 5. Generate action chain(s)
+    // 6. Assign approval tiers based on approval policy
+    // 7. Write action chains to database
+    // 8. Route to approval queue
+    // 9. Auto-execute Tier 1 actions immediately
+    // 10. Mark event as processed
   }
 }
 ```
 
-### 7.3 Example Command: `/parse-term-sheet`
-
-**`cowork-plugin/commands/parse-term-sheet.md`**:
-```markdown
-# /parse-term-sheet
-
-Parse a term sheet and extract the Deal Parameter Object.
-
-## Usage
-/parse-term-sheet [path-to-term-sheet]
-
-## Behavior
-1. Accept a file path (DOCX or PDF) or ask the user to provide one.
-2. Read the file contents using available tools.
-3. Call the `parse_term_sheet` MCP tool with the file content.
-4. Display the extracted Deal Parameter Object in a readable format.
-5. Ask the user to confirm or correct any low-confidence extractions.
-6. Save the confirmed parameters via `update_deal_parameters` MCP tool.
-
-## Output Format
-Display a table of all extracted parameters with confidence scores.
-Flag any parameter with confidence < 0.85 for human review.
-```
-
-### 7.4 MCP Server Tools
-
-The MCP server (`packages/mcp-server`) exposes these tools:
-
-| Tool Name | Input | Output | Description |
-|-----------|-------|--------|-------------|
-| `list_deals` | none | Deal[] | List all active deals |
-| `get_deal_state` | dealId | Deal + checklist + recent activity | Full deal context |
-| `parse_term_sheet` | fileContent, fileName | DealParameters + confidence scores | Extract parameters from term sheet |
-| `update_deal_parameters` | dealId, parameters | updated Deal | Update deal parameters |
-| `generate_checklist` | dealId | ChecklistItem[] | Generate document checklist |
-| `get_checklist` | dealId | ChecklistItem[] | Get current checklist |
-| `generate_document` | dealId, checklistItemId, stage | DocumentVersion | Generate next document version |
-| `analyze_markup` | dealId, checklistItemId, fileContent | MarkupAnalysis | Analyze counterparty markup |
-| `search_precedent` | provisionType, dealProfile, query? | Formulation[] | Semantic search provisions |
-| `whats_market` | provisionType, dealProfile | MarketData | Variant distribution for similar deals |
-| `classify_email` | emailContent, dealId | Classification | Classify an email |
-| `morning_briefing` | dealId | Briefing | Generate morning briefing |
-| `get_dd_schema` | dealId | DDSchema | Get DD schema |
-| `process_vdr_document` | dealId, fileContent | DDFindings | Process a VDR document |
+Background processing: events processed via polling `setInterval` loop (production: BullMQ). Events for the same deal processed sequentially; events across deals processed in parallel.
 
 ---
 
-## 8. WEB PORTAL SPECIFICATION
+## 6. APPROVAL FRAMEWORK
 
-### 8.1 Pages & Routes
+### 6.1 Approval Tiers
 
-| Route | Page | Description |
-|-------|------|-------------|
-| `/` | Landing | Login buttons (Google + Microsoft) |
-| `/deals` | Deal List | Cards for each active deal with health indicators |
-| `/deals/new` | New Deal | Create deal form + term sheet upload |
-| `/deals/[id]` | Deal Dashboard | Command center (Section 11.2 of original spec) |
-| `/deals/[id]/checklist` | Checklist | Full checklist table with lifecycle stages |
-| `/deals/[id]/documents` | Documents | All documents with version timelines |
-| `/deals/[id]/documents/[docId]` | Document Detail | Version history, redlines, provision analysis |
-| `/deals/[id]/emails` | Email Inbox | Classified deal emails with processing status |
-| `/deals/[id]/diligence` | DD Dashboard | Schema progress, findings, exposure summary |
-| `/deals/[id]/settings` | Deal Settings | Team, Drive folder, inbox config |
+**Tier 1 — Auto-execute.** Low-risk, high-frequency actions.
+- Checklist status field updates
+- `ball_with` updates
+- Activity log entries
+- Internal notifications
+- Drive sync operations
+- Timeline recalculations
 
-### 8.2 Deal Dashboard (Command Center)
+**Tier 2 — Approve-to-execute.** Pre-rendered output, one-tap approval.
+- Document modifications (provision edits, schedule entries)
+- Email drafts to counterparty counsel
+- DD finding confirmations
+- Negotiation position updates
+- Closing checklist updates
+- Third-party communication drafts
+- Client action item creation
 
-This is the most important page. It contains:
+**Tier 3 — Review required.** Human must think and decide.
+- Novel legal issues
+- Conflicting DD findings
+- Fundamental shifts in negotiation posture
+- Anything touching deal economics
+- Constitutional constraint violations
+- Inter-workstream conflicts
 
-1. **Deal Health Indicators** (top bar): 6 metrics with color-coded status
-   - Critical items count (red if > 0)
-   - Overdue items count (red if > 0)
-   - Document progress (% of checklist items at 'adapted' or beyond)
-   - DD progress (% of schema nodes with findings or clean determinations)
-   - Regulatory status (green/yellow/red)
-   - Days to expected close
-
-2. **Recent Activity Feed** (left column): Chronological stream of events
-
-3. **Email Panel** (top right): Last 5 unprocessed emails with flags
-
-4. **Checklist Summary** (center): Table showing each document's current stage, ball-with, and next action
-
-5. **DD Summary** (bottom left): Workstream bars showing completion %
-
-6. **Agent Chat** (right sidebar): Persistent chat interface that calls the backend API / MCP tools to answer deal questions
-
-### 8.3 UI Component Library
-
-Use shadcn/ui components. Key components needed:
-
-- `DataTable` (for checklist, emails, documents)
-- `Card` (for deal cards, health indicators)
-- `Badge` (for status indicators)
-- `Tabs` (for deal sub-pages)
-- `Sheet` (for side panels — provision detail, email detail)
-- `Dialog` (for confirmations, file uploads)
-- `Command` (for search / command palette)
-- `Progress` (for document pipeline stages, DD completion)
-
----
-
-## 9. GOOGLE DRIVE INTEGRATION
-
-### 9.1 Folder Structure per Deal
-
-When a deal is created, the system creates this folder structure in Google Drive:
-
-```
-[Deal Name] ([Code Name])/
-├── 00_Deal_Overview/
-│   ├── Term_Sheet/
-│   └── Deal_Parameters/
-├── 01_Organizational/
-├── 02_Purchase_Agreement/
-│   ├── Versions/
-│   └── Redlines/
-├── 03_Ancillary_Agreements/
-├── 04_Employment/
-├── 05_Regulatory/
-├── 06_Financing/
-├── 07_Third_Party/
-├── 10_Correspondence/
-│   ├── Inbound/
-│   └── Outbound/
-├── 11_Due_Diligence/
-│   ├── Requests/
-│   ├── Responses/
-│   └── Reports/
-└── 99_Closing/
-```
-
-### 9.2 Sync Behavior
-
-- **System → Drive:** When the system generates a document version, it uploads to the appropriate Drive folder and records the `drive_file_id` in `document_versions` and `drive_sync_records`.
-- **Drive → System:** Polling-based detection (every 60 seconds) checks for modified files in deal folders. When detected, downloads the new version, computes hash, and creates a new `document_version` record.
-- **Conflict detection:** If both sides changed since last sync, set `sync_status = 'conflict'` and surface to user.
-
-### 9.3 Implementation Notes
-
-- Use `googleapis` npm package with **Service Account authentication**. Load the service account key from `GOOGLE_SERVICE_ACCOUNT_KEY_PATH` (the JSON file in `config/google-service-account.json`).
-- Initialize the Drive client using `google.auth.GoogleAuth` with the service account credentials and scopes `['https://www.googleapis.com/auth/drive']`.
-- All deal folders are created as subfolders of `GOOGLE_DRIVE_ROOT_FOLDER_ID`.
-- The service account email (`ma-deal-os@ma-deal-os.iam.gserviceaccount.com`) must have Editor access on the root folder.
-- Use Drive API v3 `files.list`, `files.create`, `files.get`, `files.export` (for Google Docs → DOCX conversion).
-- For testing, use polling to detect file changes. Add Drive webhooks (`files.watch`) for production.
-
----
-
-## 10. OUTLOOK EMAIL INTEGRATION
-
-### 10.1 Microsoft Graph API Usage
-
-| Operation | Graph API Endpoint | Purpose |
-|-----------|-------------------|---------|
-| List messages | `GET /me/mailFolders/inbox/messages` | Fetch emails |
-| Get message | `GET /me/messages/{id}` | Full email with body |
-| Get attachment | `GET /me/messages/{id}/attachments` | Download attachments |
-| Send email | `POST /me/sendMail` | Send on behalf of user |
-| Search messages | `GET /me/messages?$search=...` | Search deal-related emails |
-| Create subscription | `POST /subscriptions` | Webhook for new emails |
-
-### 10.2 Email Processing Flow
-
-1. **Sync:** Periodically (or via webhook) fetch new emails from the user's inbox.
-2. **Classify:** For each email, run multi-signal classification:
-   - Match sender/recipients against deal contact registries
-   - Parse subject line for deal code names, document type patterns
-   - Analyze attachment filenames
-   - Use LLM for body text classification if signals are ambiguous
-3. **Store:** Save classified email to `deal_emails` table with embedding.
-4. **Process attachments:** For document attachments:
-   - Upload to Supabase Storage
-   - Upload to deal's Google Drive folder
-   - If it's a markup of a known document, trigger redline generation
-5. **Surface:** Show in the deal dashboard email panel with flags.
-
-### 10.3 Implementation Notes
-
-- Use `@microsoft/microsoft-graph-client` with `@azure/msal-node` for auth.
-- Token refresh must be handled automatically (MSAL handles this).
-- For the prototype, implement manual sync (user clicks "Sync Emails" button). Add webhook-based real-time sync later.
-
----
-
-## 11. AI/LLM PIPELINE SPECIFICATION
-
-All LLM calls go through the `packages/ai` module. Every prompt is defined as a TypeScript function that constructs the message array.
-
-### 11.1 Term Sheet Parser
-
-**Model:** `claude-sonnet-4-5-20250929`
-**Input:** Raw text extracted from term sheet (DOCX or PDF)
-**Output:** JSON conforming to `DealParameters` type
-**Prompt strategy:** System prompt defines all 12 enumerated variables with their possible values. User prompt contains the term sheet text. Response format is structured JSON with confidence scores per field.
+### 6.2 Approval Policy
 
 ```typescript
-// packages/ai/src/prompts/term-sheet-parser.ts
-export function buildTermSheetParserPrompt(termSheetText: string): MessageParam[] {
-  return [
-    {
-      role: "user",
-      content: `You are an expert M&A attorney. Extract the following deal parameters from this term sheet.
+interface ApprovalPolicy {
+  id: string;
+  deal_id?: string;
+  user_id?: string;
+  role?: string;
+  rules: ApprovalRule[];
+}
 
-For each parameter, provide:
-- value: the extracted value (must be one of the allowed enum values)
-- confidence: 0.0 to 1.0
-- source_text: the exact quote from the term sheet that supports this extraction
-
-## Parameters to Extract
-
-1. transaction_structure: STOCK_PURCHASE | ASSET_PURCHASE | FORWARD_MERGER | REVERSE_MERGER | REVERSE_TRIANGULAR_MERGER
-2. entity_types.seller: CORPORATION | LLC | LP | C_CORP | S_CORP | PE_FUND | INDIVIDUAL | CONSORTIUM
-3. entity_types.target: (same options)
-4. entity_types.buyer: (same options)
-5. buyer_formation: EXISTING | NEWCO
-6. consideration: (multi-select) CASH | BUYER_STOCK | SELLER_NOTE | ASSUMED_DEBT | ROLLOVER_EQUITY
-7. price_adjustments: (multi-select) WORKING_CAPITAL_ADJ | NET_DEBT_ADJ | NET_CASH_ADJ | EARNOUT | MILESTONE_PAYMENTS
-8. indemnification: TRADITIONAL | RW_INSURANCE_PRIMARY | RW_INSURANCE_SUPPLEMENTAL | ESCROW_ONLY | COMBO_ESCROW_AND_RWI
-9. escrow: true | false
-10. holdback: true | false
-11. regulatory: (multi-select) HSR_FILING | CFIUS | INDUSTRY_SPECIFIC | FOREIGN_COMPETITION | STATE_REGULATORY
-12. financing.type: CASH_ON_HAND | DEBT_FINANCED | EQUITY_COMMITMENT | COMBO
-13. financing.financing_condition: true | false
-14. key_employees.treatment: EMPLOYMENT_AGREEMENTS | CONSULTING | RETENTION_BONUSES | NONE | COMBO
-15. key_employees.non_competes: true | false
-16. tsa.required: true | false
-17. tsa.direction: SELLER_TO_BUYER | BUYER_TO_SELLER | BILATERAL
-18. is_carveout: true | false
-19. jurisdiction: DELAWARE | NEW_YORK | CALIFORNIA | OTHER_US_STATE | FOREIGN
-
-Also extract:
-- deal_value (numeric, in dollars)
-- target_name, buyer_name, seller_name
-- industry
-- buyer_type: PE | STRATEGIC | CONSORTIUM
-
-Respond ONLY with a JSON object. No other text.
-
-## Term Sheet:
-
-${termSheetText}`
-    }
-  ];
+interface ApprovalRule {
+  action_type: ProposedActionType | ProposedActionType[];
+  conditions?: {
+    significance_gte?: number;
+    provision_type?: string[];
+    counterparty_facing?: boolean;
+    client_facing?: boolean;
+    financial_impact?: boolean;
+  };
+  tier: 1 | 2 | 3;
 }
 ```
 
-### 11.2 Checklist Generator
+**Default partner policy:**
+```typescript
+const defaultPartnerPolicy: ApprovalRule[] = [
+  { action_type: ['status_update', 'notification', 'timeline_update'], tier: 1 },
+  { action_type: 'checklist_ball_with_update', tier: 1 },
+  { action_type: 'checklist_status_update', tier: 1 },
+  { action_type: 'document_edit', tier: 2 },
+  { action_type: 'document_generate', tier: 2 },
+  { action_type: 'email_draft', tier: 2 },
+  { action_type: 'dd_finding_create', tier: 2 },
+  { action_type: 'disclosure_schedule_entry', tier: 2 },
+  { action_type: 'closing_checklist_update', tier: 2 },
+  { action_type: 'third_party_communication', tier: 2 },
+  { action_type: 'client_action_item_create', tier: 2 },
+  { action_type: 'email_draft', conditions: { client_facing: true }, tier: 3 },
+  { action_type: 'document_edit', conditions: { financial_impact: true }, tier: 3 },
+  { action_type: 'negotiation_position_update', conditions: { significance_gte: 4 }, tier: 3 },
+  { action_type: 'client_communication_draft', tier: 3 },
+];
+```
 
-**Model:** `claude-sonnet-4-5-20250929` (only for CIM enrichment; deterministic rules are pure code)
-**Flow:**
-1. Run deterministic rules engine (pure TypeScript, no LLM) → generates ~60-70% of checklist
-2. If CIM is available, send CIM text to LLM to identify additional document triggers
-3. Merge and deduplicate
-4. Return complete checklist
+### 6.3 Approval Queue Interface
 
-### 11.3 Document Generation
+Card-based layout showing pending items. Each card: severity, summary, deal name, action count, Approve/Review buttons. Expandable detail shows pre-rendered previews.
 
-**Model:** `claude-opus-4-6` (for precedent application and substance adaptation — highest quality needed)
-**Flow per document:**
-1. **v1 (Template):** Select template from database based on deal parameters. No LLM needed.
-2. **v2 (Precedent Applied):** LLM compares template provisions against best-match precedent, provision by provision, deciding what to keep vs. swap. Outputs a structured change plan, then generates the merged document.
-3. **v3 (Scrubbed):** Mostly mechanical string replacement (party names, amounts, dates). LLM verifies cross-references.
-4. **v4 (Adapted):** LLM analyzes CIM + DD findings and proposes specific modifications. Outputs modifications with reasoning.
+### 6.4 Mobile-First Design
 
-### 11.4 Markup Analyzer
+- Push notifications for Tier 2 and 3 items
+- Swipe-to-approve for Tier 2
+- Card layout optimized for phone screens
+- Offline support with sync on reconnect
 
-**Model:** `claude-sonnet-4-5-20250929`
-**Input:** Original document text + counterparty markup text
-**Output:** Structured analysis:
+---
+
+## 7. AGENT ARCHITECTURE
+
+### 7.1 Agent Hierarchy
+
+```
+                    ┌─────────────────────┐
+                    │   Human Partner     │
+                    │   (Approval Queue    │
+                    │    + Chat Interface) │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │   Manager Agent     │
+                    │   (Senior Associate) │
+                    └──┬───────────────┬──┘
+                       │               │
+          ┌────────────▼──┐    ┌───────▼────────────┐
+          │ System Expert │    │ Specialist Agents   │
+          │ (Always on)   │    │ (Spun up per task)  │
+          └───────────────┘    └────────────────────┘
+```
+
+### 7.2 Manager Agent
+
+**Role:** Senior associate who runs the deal. Holistic deal model, work routing, synthesis, partner communication.
+
+**Context loaded on activation:**
+- Deal Parameter Object (full)
+- Current checklist with status summary
+- Negotiation state tracker (positions by provision)
+- Active DD findings (summary)
+- Recent activity log (last 48 hours)
+- Pending approval queue items
+- Partner Constitution
+- Critical path analysis
+- Upcoming deadlines (next 14 days)
+
+**Tool access:** All MCP tools + action chain creation + specialist invocation + notification dispatch + negotiation state update + approval queue management.
+
+### 7.3 Specialist Agents (Dynamically Configured)
+
+```typescript
+interface SpecialistConfig {
+  task_type: 'markup_analysis' | 'document_drafting' | 'dd_investigation'
+    | 'email_analysis' | 'disclosure_review' | 'closing_preparation'
+    | 'negotiation_analysis' | 'precedent_research';
+  skills: string[];
+  context: {
+    documents: string[];
+    provisions?: string[];
+    deal_state_subset: string[];
+    precedent_query?: string;
+  };
+  tools: string[];
+  output_schema: object;
+  instructions: string;
+}
+```
+
+**Specialist types:**
+- **Drafter:** Document drafting, cross-reference management, defined term consistency
+- **Analyst:** DD investigation, risk classification, exposure quantification
+- **Negotiation:** Strategy, concession analysis, market data interpretation
+- **Email:** Communication patterns, position extraction, action item identification
+- **Closing:** Closing mechanics, condition tracking, funds flow preparation
+
+### 7.4 System Expert Agent
+
+Platform knowledge expert. Knows all data locations, workflows, tools, configuration. Used for onboarding, troubleshooting, setup.
+
+### 7.5 Agent Communication Protocol
+
+```typescript
+interface AgentMessage {
+  from: 'manager' | 'specialist' | 'system_expert' | 'observer';
+  to: 'manager' | 'specialist' | 'system_expert' | 'observer' | 'human';
+  type: 'task_assignment' | 'task_result' | 'escalation' | 'notification'
+    | 'query' | 'recommendation' | 'alert';
+  content: {
+    summary: string;
+    detail: Record<string, any>;
+    confidence: number;
+    reasoning?: string;
+    alternatives?: any[];
+  };
+  priority: 'routine' | 'normal' | 'high' | 'urgent';
+  requires_response: boolean;
+  deal_id: string;
+  timestamp: string;
+}
+```
+
+Hub-and-spoke model: Manager is the hub. All specialist results flow to Manager. Specialists never communicate directly with each other or with the human.
+
+### 7.6 Agent Activation Triggers
+
+**Event-driven:** Significance 1-2: Layer 1-2 only. Significance 3: Manager lightweight check. Significance 4-5: Manager full activation.
+
+**Scheduled:** Morning briefing (daily), end-of-day review (daily), weekly strategic assessment, deadline proximity check (daily).
+
+**On-demand:** Chat interface, approval queue (requesting analysis on Tier 3 item).
+
+### 7.7 Agent Cost Control
+
+```typescript
+interface AgentActivation {
+  id: string;
+  deal_id: string;
+  agent_type: 'manager' | 'specialist' | 'system_expert';
+  trigger_type: 'event' | 'scheduled' | 'on_demand';
+  trigger_source: string;
+  input_tokens: number;
+  output_tokens: number;
+  total_cost_usd: number;
+  model_used: string;
+  steps: number;
+  tool_calls: number;
+  specialist_invocations: number;
+  started_at: string;
+  completed_at: string;
+  duration_ms: number;
+}
+```
+
+**Cost controls:**
+- Per-deal daily token budget (default $50/day)
+- Per-activation token limit (default 200K input, 20K output)
+- Multi-step limit (default 10 steps per investigation)
+- Specialist invocation limit (default 3 per Manager activation)
+
+**Monitoring levels:**
+- **Conservative:** On-demand + scheduled only. ~$10-20/day.
+- **Standard:** + event-driven for significance 4-5. ~$30-50/day.
+- **Aggressive:** + event-driven for significance 3+. ~$50-100/day.
+
+---
+
+## 8. SKILLS SYSTEM
+
+### 8.1 Skills Architecture
+
+```
+/skills/
+├── static/                        ← Pre-built, ships with system
+│   ├── domain/                    ← M&A legal knowledge
+│   ├── process/                   ← System operation procedures
+│   └── meta/                      ← Higher-order reasoning
+├── adaptive/                      ← Learned from experience
+│   ├── partner-preferences/
+│   ├── counterparty-patterns/
+│   ├── deal-type-refinements/
+│   └── firm-conventions/
+└── dynamic/                       ← Created on-the-fly by agents
+    ├── generated/
+    └── pending-review/
+```
+
+### 8.2 Skill Format
+
+```markdown
+---
+skill_id: domain/markup-analysis
+version: 1.2
+type: domain
+applicable_agents: [specialist]
+applicable_tasks: [markup_analysis]
+depends_on: [domain/provision-drafting]
+last_updated: 2026-02-06
+quality_score: 0.85
+source: static
+---
+
+# Markup Analysis
+
+## Purpose
+[Purpose description]
+
+## Methodology
+### Step 1: [...]
+### Step 2: [...]
+
+## Common Patterns
+[...]
+
+## Common Mistakes to Avoid
+[...]
+
+## Examples
+[...]
+```
+
+### 8.3 Static Skills (Pre-Built Library)
+
+**Domain skills:** markup-analysis, provision-drafting, negotiation-strategy, dd-methodology, closing-mechanics, disclosure-schedules, regulatory-filings, cross-reference-management, defined-term-consistency, indemnification-structures, purchase-price-mechanics, employment-matters, ip-assessment, financial-statement-review, third-party-coordination
+
+**Process skills:** action-chain-creation, approval-queue-formatting, email-communication, document-versioning, closing-coordination, client-communication
+
+**Meta skills:** problem-decomposition, confidence-calibration, escalation-judgment, gap-recognition, skill-scoping, objective-conflict-resolution
+
+### 8.4 Adaptive Skills
+
+Created from feedback patterns (3+ similar modifications). Stored per-partner, per-firm, per-deal-type. Automatically loaded by Manager when configuring specialists.
+
+### 8.5 Dynamic Skills
+
+Gap recognition → Scope definition → Research → Build (knowledge or code skill via Coding Agent) → Test (Testing Agent) → Deploy → Archive.
+
+### 8.6 Coding Agent and Testing Agent
+
+**Coding Agent:** File system access, bash, git. Follows codebase patterns, writes tests, commits changes.
+
+**Testing Agent:** Test runner, file system access. Never modifies source code. Runs tests, evaluates, flags regressions.
+
+---
+
+## 9. PARTNER CONSTITUTION & GOVERNANCE
+
+### 9.1 Constitution Structure
+
+```typescript
+interface PartnerConstitution {
+  id: string;
+  deal_id: string;
+  partner_id: string;
+  created_at: string;
+  updated_at: string;
+  hard_constraints: HardConstraint[];
+  preferences: Preference[];
+  strategic_directives: StrategicDirective[];
+}
+
+interface HardConstraint {
+  id: string;
+  category: 'communication' | 'negotiation' | 'approval' | 'disclosure' | 'financial';
+  description: string;
+  rule: string;
+  consequence: 'block_and_escalate';
+}
+
+interface Preference {
+  id: string;
+  category: 'drafting' | 'negotiation' | 'communication' | 'process' | 'risk_tolerance';
+  description: string;
+  default_behavior: string;
+  override_condition: string;
+}
+
+interface StrategicDirective {
+  id: string;
+  description: string;
+  applies_to: string[];
+  priority: 'primary' | 'secondary';
+}
+```
+
+### 9.2 Constitution Creation: Conversational Encoding
+
+Partner speaks naturally about deal approach → Manager + System Expert structure into constitutional provisions → Partner confirms. Living document updated throughout the deal.
+
+### 9.3 Constitution Enforcement
+
+- **Hard constraints:** Inviolable. Violations blocked and escalated to Tier 3.
+- **Preferences:** Defaults. Deviation requires justification.
+- **Strategic directives:** Interpretive guidance for tie-breaking decisions.
+
+Consequence resolver checks all action chains against constitution before routing to approval queue.
+
+---
+
+## 10. PRECEDENT INTELLIGENCE PIPELINE
+
+### 10.1 Overview
+
+The precedent database provides data-driven intelligence about deal terms, provision formulations, and negotiation patterns.
+
+Core schema: `provision_types`, `provision_variants`, `provision_formulations` (existing tables from Phase 2).
+
+### 10.2 EDGAR Ingestion Pipeline
+
+```
+EDGAR Search → Download Exhibits → Extract Text → Segment Provisions
+     → Classify Provisions → Score Quality → Embed → Store
+```
+
+### 10.3 Quality Scoring
+
+```typescript
+interface ProvisionQualityScore {
+  composite: number;        // weighted average
+  firm_tier: number;        // from firm identification lookup
+  deal_size: number;        // from transaction value
+  recency: number;          // filing date decay function
+  structural_quality: number; // drafting quality checks (Layer 2)
+  corpus_alignment: number;  // similarity to type/variant centroid
+  negotiation_survival: number; // if detectable
+}
+```
+
+Firm tier lookup table (Wachtell=1.0, Sullivan=1.0, ... regional=0.50, unknown=0.40).
+
+### 10.4 Quality-Weighted Retrieval
+
+```typescript
+// Retrieval scoring:
+// final_score = (0.6 * semantic_similarity) + (0.4 * quality_score)
+// Filtered by: deal_profile match, min_quality threshold
+// Boosted by: recency, deal_size proximity, industry match
+```
+
+### 10.5 Dynamic Quality Learning
+
+- Formulation used + approved → quality score increases
+- Formulation used + rewritten → quality score decreases, partner's version stored as new high-quality formulation
+- Used across multiple deals → significant quality increase
+- 6 months non-use → flagged for review
+
+### 10.6 Existing Implementation (Phases 0-2)
+
+Already built and working:
+- Voyage embeddings with pgvector (1024 dimensions)
+- 10 EDGAR precedent deals harvested
+- 50 SPA provision types with variants seeded
+- Provision segmenter (47 sections)
+- Basic semantic search via `provision_formulations.text_embedding`
+
+Phase 10 extends this with automated quality scoring, EDGAR discovery pipeline, and quality-weighted retrieval.
+
+---
+
+## 11. DOCUMENT PROCESSING PIPELINE
+
+### 11.1 Document Reading (EXISTING)
+
+```typescript
+// packages/integrations/src/documents/docx-reader.ts
+import mammoth from 'mammoth';
+export async function extractTextFromDocx(buffer: Buffer): Promise<string> { ... }
+export async function extractHtmlFromDocx(buffer: Buffer): Promise<string> { ... }
+
+// packages/integrations/src/documents/pdf-reader.ts
+import pdfParse from 'pdf-parse';
+export async function extractTextFromPdf(buffer: Buffer): Promise<string> { ... }
+```
+
+### 11.2 Document Writing (EXISTING)
+
+```typescript
+// packages/integrations/src/documents/docx-writer.ts
+import { Document, Packer, Paragraph, TextRun } from 'docx';
+export async function generateDocument(content: DocumentContent): Promise<Buffer> { ... }
+```
+
+### 11.3 Document Generation Pipeline (EXISTING)
+
+- **v1 (Template):** Select template from database. No LLM.
+- **v2 (Precedent Applied):** LLM compares template vs precedent, provision by provision. Model: `claude-sonnet-4-5-20250929`.
+- **v3 (Scrubbed):** String replacement (party names, amounts, dates) + LLM cross-reference verification. Model: `claude-sonnet-4-5-20250929`.
+- **v4 (Adapted):** LLM analyzes CIM + DD findings and proposes modifications. Model: `claude-opus-4-6`.
+
+### 11.4 Provision Segmentation (EXISTING)
+
+Breaks documents into 30-60 tagged sections with provision type codes.
+
+### 11.5 Markup Analysis
+
 ```typescript
 interface MarkupAnalysis {
   changes: Array<{
@@ -1232,236 +1712,615 @@ interface MarkupAnalysis {
 }
 ```
 
-### 11.5 Email Classifier
+### 11.6 Redline Generation
 
-**Model:** `claude-sonnet-4-5-20250929` (fast, cheap — called frequently)
-**Input:** Email subject, sender, recipients, body preview, attachment filenames
-**Output:** Classification + related entities
-
-### 11.6 Deal Agent / Morning Briefing
-
-**Model:** `claude-opus-4-6`
-**Input:** Deal state summary (compiled from database) + specific query or "generate morning briefing"
-**Context window strategy:**
-- Always include: deal parameters (~500 tokens), checklist summary (~1K tokens), recent activity (~2K tokens)
-- Retrieve on demand: specific document versions, email threads, DD findings as needed
-- Total prompt target: <20K tokens per call
+Prototype: text-level diffing via LLM → structured change summary (not OOXML tracked changes).
 
 ---
 
-## 12. DOCUMENT PROCESSING PIPELINE
+## 12. EMAIL & COMMUNICATION INTEGRATION
 
-### 12.1 Reading Documents
+### 12.1 Microsoft Graph API Usage (EXISTING)
 
-```typescript
-// packages/integrations/src/documents/docx-reader.ts
-import mammoth from 'mammoth';
+| Operation | Graph API Endpoint | Purpose |
+|-----------|-------------------|---------|
+| List messages | `GET /me/mailFolders/inbox/messages` | Fetch emails |
+| Get message | `GET /me/messages/{id}` | Full email with body |
+| Get attachment | `GET /me/messages/{id}/attachments` | Download attachments |
+| Send email | `POST /me/sendMail` | Send on behalf of user |
+| Search messages | `GET /me/messages?$search=...` | Search deal-related emails |
+| Create subscription | `POST /subscriptions` | Webhook for new emails |
 
-export async function extractTextFromDocx(buffer: Buffer): Promise<string> {
-  const result = await mammoth.extractRawText({ buffer });
-  return result.value;
-}
+### 12.2 Email Processing Flow (EXISTING)
 
-export async function extractHtmlFromDocx(buffer: Buffer): Promise<string> {
-  const result = await mammoth.convertToHtml({ buffer });
-  return result.value;
-}
+1. **Sync:** Fetch new emails from inbox
+2. **Classify:** Multi-signal classification (sender, subject, attachments, LLM body analysis)
+3. **Store:** Save to `deal_emails` with embedding
+4. **Process attachments:** Upload to Storage + Drive, trigger redline if markup
+5. **Surface:** Show in deal dashboard
+
+### 12.3 V2 Email Enhancements (Phase 5)
+
+**Position extraction:** When email contains counterparty position language, extract and create/update `negotiation_positions` records. Layer 2 API call.
+
+**Action item identification:** Extract action items from email body, create `client_action_items` or internal task records.
+
+**Event emission:** Every classified email emits propagation events:
+- `email.received` → `email.classified` → `email.position_extracted` / `email.action_item_identified` / `email.attachment_processed`
+
+---
+
+## 13. GOOGLE DRIVE INTEGRATION
+
+### 13.1 Folder Structure per Deal (EXISTING)
+
+```
+[Deal Name] ([Code Name])/
+├── 00_Deal_Overview/
+│   ├── Term_Sheet/
+│   └── Deal_Parameters/
+├── 01_Organizational/
+├── 02_Purchase_Agreement/
+│   ├── Versions/
+│   └── Redlines/
+├── 03_Ancillary_Agreements/
+├── 04_Employment/
+├── 05_Regulatory/
+├── 06_Financing/
+├── 07_Third_Party/
+├── 10_Correspondence/
+├── 11_Due_Diligence/
+└── 99_Closing/
 ```
 
+### 13.2 Implementation (EXISTING)
+
+- Uses `googleapis` with Service Account authentication
+- Service account: `ma-deal-os@ma-deal-os.iam.gserviceaccount.com`
+- Root folder: `GOOGLE_DRIVE_ROOT_FOLDER_ID`
+- Polling-based sync (60 second intervals)
+- Conflict detection via hash comparison
+
+---
+
+## 14. GAP COVERAGE: NEW WORKFLOWS
+
+### 14.1 Disclosure Schedule Management (Phase 5)
+
+**Tables:** `disclosure_schedules`, `disclosure_entries`
+
+**Workflow:**
+1. SPA reps drafted → auto-generate disclosure schedule for each "except as set forth in Schedule X" reference
+2. Generate plain-language questionnaire from rep text (Layer 2)
+3. Send questionnaire to client
+4. Parse client responses → map to schedule entries
+5. Cross-reference DD findings → pre-populate entries
+6. When reps change in negotiation → re-evaluate schedules
+7. Gap detection: DD finding exists but no corresponding disclosure
+
+**Events:** `disclosure.schedule_updated`, `disclosure.gap_identified`, `disclosure.client_response_received`, `disclosure.cross_reference_broken`
+
+### 14.2 Negotiation State Tracker (Phase 5)
+
+**Table:** `negotiation_positions`
+
+Unified view of where each provision stands. Updated from:
+- Email position extraction
+- Markup analysis
+- Manual updates
+
+**Events:** `negotiation.position_updated`, `negotiation.concession_detected`, `negotiation.impasse_detected`
+
+### 14.3 Third-Party Management (Phase 6)
+
+**Table:** `deal_third_parties`
+
+Tracks escrow agents, R&W brokers, lender's counsel, accountants, etc. with deliverables and communication history.
+
+**Events:** `third_party.deliverable_received`, `third_party.deliverable_overdue`, `third_party.communication_received`
+
+### 14.4 Client Management (Phase 6)
+
+**Tables:** `client_contacts`, `client_action_items`, `client_communications`
+
+Automated communication types:
+- Weekly status updates (Tier 3 approval)
+- Action item requests
+- Decision memos
+- DD notifications
+- Closing preparation instructions
+
+**Events:** `client.action_item_created`, `client.action_item_completed`, `client.communication_needed`, `client.approval_requested`
+
+### 14.5 Closing Mechanics (Phase 6)
+
+**Tables:** `closing_checklists`, `closing_conditions`, `closing_deliverables`, `post_closing_obligations`
+
+**Workflow:**
+1. Deal status → 'closing' → generate closing checklist from SPA conditions (Layer 2)
+2. Generate closing deliverables from SPA + ancillaries
+3. Track condition satisfaction with evidence
+4. Auto-generate funds flow memo
+5. Signature page tracking
+6. Closing readiness dashboard (traffic light)
+7. Post-closing obligations generated from executed agreements
+
+**Events:** `closing.condition_satisfied`, `closing.condition_waived`, `closing.deliverable_received`, `closing.blocking_issue_identified`
+
+### 14.6 Negotiation Strategy Module (Phase 5)
+
+**Table:** `negotiation_roadmaps`
+
+Manager Agent creates initial roadmap at deal kickoff. Updated after each negotiation round. Used for all strategic recommendations.
+
+### 14.7 Knowledge Capture (Phase 14)
+
+**Table:** `deal_knowledge`
+
+Auto-generated after deal close: negotiation outcomes, usage/acceptance data, process timeline data. Optional partner debrief.
+
+---
+
+## 15. OBSERVER & SELF-IMPROVEMENT SYSTEM
+
+### 15.1 Overview
+
+The Observer watches deal operations, identifies weaknesses, implements fixes, and validates improvements during operation.
+
+### 15.2 Observer Agent Architecture
+
+Independent from deal agent hierarchy. Has access to all events, action chains, approval outcomes, email traffic, token consumption, timing data, feedback events, git history.
+
+**Authority:** Can modify any file (skills, prompts, code, schema, config). Every modification is a git commit. Cannot force-push or rebase.
+
+**Requires human approval to modify:** Constitution enforcement mechanism, approval tier framework, Observer's own evaluation criteria, this list.
+
+### 15.3 Evaluation Criteria
+
+**Accuracy:** term sheet extraction, checklist completeness, markup analysis, DD finding detection, cross-reference validity, defined term consistency, disclosure schedule completeness.
+
+**Efficiency:** tokens per action chain, redundant API calls, agent activation efficiency, processing times, unnecessary agent activations.
+
+**Quality:** human modification rate, rejection rate, provision drafting quality, email appropriateness, approval queue clarity, strategic recommendation quality.
+
+**Coverage:** deal phases handled, workflow gaps, missing event types, missing consequence maps, unhandled email types.
+
+**Coordination:** propagation accuracy, cross-workstream detection, disclosure schedule sync, negotiation state accuracy, timeline accuracy.
+
+### 15.4 Improvement Loop
+
+Detect → Diagnose → Prescribe → Implement (via Coding Agent) → Test (via Testing Agent) → Deploy (git commit) → Verify (watch for recurrence).
+
+Max 3 iterations per fix attempt, then escalate to human.
+
+### 15.5 Observer Notification Channel
+
+Separate from deal approval queue. Shows changes with diffs, allows human to review and revert asynchronously.
+
+---
+
+## 16. SIMULATION FRAMEWORK
+
+### 16.1 Architecture
+
+Two platform instances with independent databases. Communicate via real email. Client agents simulate business principals. Third-party agents simulate escrow agents, R&W brokers, etc. Simulation clock controls time progression.
+
+### 16.2 Seeded Scenario (Initial)
+
+**Target:** Mid-market tech company ($120M revenue, $25M EBITDA, 400 employees, Enterprise SaaS, Delaware).
+
+**Seeded issues (8):**
+1. Material contract CoC provision ($18M customer, 30-day cure)
+2. Employment misclassification (25 contractors, $2-4M exposure)
+3. Patent rejection on first office action
+4. Environmental remediation ($500K-$2M)
+5. Founder undisclosed consulting conflict
+6. Aggressive revenue recognition (key audit matter)
+7. Employee non-competes from prior employers
+8. JDA assignment consent (unresponsive counterparty)
+
+**Term sheet:** Stock purchase $150M, $130M cash + $20M earnout, $7.5M escrow, R&W insurance, HSR required.
+
+**50-100 seeded VDR documents** across corporate, contracts, financial, employment, IP, real estate, environmental, litigation, insurance.
+
+### 16.3 Simulation Execution Protocol
+
+Phase 0 (Setup) → Phase 1 (Intake) → Phase 2 (First Draft) → Phase 3 (DD + Markup) → Phase 4 (Negotiation Rounds) → Phase 5 (Disclosure Schedules) → Phase 6 (Third-Party Coordination) → Phase 7 (Closing Preparation) → Phase 8 (Closing) → Phase 9 (Post-Closing)
+
+### 16.4 Simulation Evaluation Report
+
 ```typescript
-// packages/integrations/src/documents/pdf-reader.ts
-import pdfParse from 'pdf-parse';
-
-export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  const data = await pdfParse(buffer);
-  return data.text;
-}
-```
-
-### 12.2 Writing Documents
-
-```typescript
-// packages/integrations/src/documents/docx-writer.ts
-import { Document, Packer, Paragraph, TextRun, ... } from 'docx';
-
-export async function generateDocument(content: DocumentContent): Promise<Buffer> {
-  const doc = new Document({
-    sections: [{ children: content.paragraphs.map(p => /* ... */) }]
-  });
-  return await Packer.toBuffer(doc);
-}
-```
-
-### 12.3 Redline Generation (Prototype Approach)
-
-For the prototype, use text-level diffing with the LLM to generate a structured change summary rather than true OOXML tracked changes. True tracked-changes generation is a Phase 2+ feature.
-
-```typescript
-// packages/integrations/src/documents/redline-generator.ts
-export async function generateRedlineSummary(
-  originalText: string,
-  modifiedText: string,
-  anthropicClient: Anthropic
-): Promise<RedlineSummary> {
-  // Use Claude to identify and classify changes at provision level
-  // Returns structured diff, not a DOCX tracked changes file
+interface SimulationReport {
+  run_id: string;
+  scenario: string;
+  accuracy_scores: AccuracyCriteria;
+  efficiency_scores: EfficiencyCriteria;
+  quality_scores: QualityCriteria;
+  coverage_scores: CoverageCriteria;
+  coordination_scores: CoordinationCriteria;
+  total_token_cost: number;
+  observer_changes: ObserverChange[];
+  remaining_gaps: string[];
+  recommendations: string[];
 }
 ```
 
 ---
 
-## 13. IMPLEMENTATION PHASES
+## 17. KNOWLEDGE & LEARNING PIPELINE
 
-### Phase 0: Scaffold & Infrastructure (Claude Code starts here)
+### 17.1 Feedback Event Capture
 
-**Deliverables:**
-1. Initialize monorepo with pnpm + Turborepo
-2. Create all packages with `package.json` and `tsconfig.json`
-3. Set up Next.js app with Tailwind + shadcn/ui
-4. Set up Drizzle ORM with Supabase connection
-5. Create database schema and run initial migration
-6. Set up NextAuth with Microsoft provider (for Outlook access)
-7. Create `.env.example` with all required variables
-8. Verify: app starts, auth works, database connects
+Every human action generates a feedback event:
 
-### Phase 1: Core Deal Flow
+```typescript
+interface FeedbackEvent {
+  id: string;
+  deal_id: string;
+  user_id: string;
+  event_type: 'approved' | 'modified' | 'rejected' | 'escalated' | 'annotation';
+  target_type: string;
+  target_id: string;
+  original_output: Record<string, any>;
+  modified_output?: Record<string, any>;
+  modification_delta?: Record<string, any>;
+  annotation?: string;
+  agent_context_summary: string;
+  agent_confidence: number;
+  created_at: string;
+}
+```
 
-**Deliverables:**
-1. Deal CRUD API routes and UI pages
-2. Term sheet parser (upload DOCX/PDF → extract parameters)
-3. Deal Parameter Object editor (form to review/edit extracted parameters)
-4. Deterministic checklist rules engine
-5. Checklist generation and display
-6. Google Drive folder creation on deal create
-7. Verify: can create a deal from a term sheet, see generated checklist
+Frictionless annotation: "Brief note on why? (optional)" after any modification.
 
-### Phase 2: Document Pipeline (v1–v3)
+### 17.2 Learning Pipeline
 
-**Deliverables:**
-1. Provision type taxonomy seed data (top 50 provisions for SPAs)
-2. Template document storage and selection
-3. v1 generation (select and copy template)
-4. Provision segmentation (break document into tagged segments)
-5. v2 generation (precedent application — simplified for prototype)
-6. v3 generation (scrub with deal details)
-7. Document version tracking and display
-8. Upload to Google Drive on each version
-9. Verify: can generate v1–v3 for an SPA, see versions in UI and Drive
+- **Update precedent quality scores** from approval/rejection patterns
+- **Generate adaptive skills** when 3+ similar modifications detected
+- **Add test cases** from every rejected/modified action
+- **Feed Observer** for systematic pattern detection
 
-### Phase 3: Email Integration
+### 17.3 Conversational Knowledge Encoding
 
-**Deliverables:**
-1. Outlook OAuth flow
-2. Email sync (fetch inbox messages)
-3. Email classification pipeline
-4. Attachment processing (download, store, upload to Drive)
-5. Email display in deal dashboard
-6. Verify: can sync Outlook emails, see them classified by deal
-
-### Phase 4: Precedent Intelligence
-
-**Deliverables:**
-1. Precedent ingestion pipeline (upload document → decompose → classify → embed)
-2. Provision formulation vector search
-3. "What's market" analysis endpoint
-4. Formulation retrieval and ranking
-5. v4 document generation (substance adaptation)
-6. Markup analysis pipeline
-7. Verify: can search precedent, see market data, analyze a counterparty markup
-
-### Phase 5: Due Diligence Engine
-
-**Deliverables:**
-1. DD topic taxonomy seed data
-2. DD schema generation from deal parameters
-3. VDR document processing pipeline
-4. Finding creation and management
-5. DD → document pipeline integration (findings propagate to document modifications)
-6. DD dashboard with progress tracking
-7. Verify: can generate DD schema, process documents, see findings
-
-### Phase 6: Deal Agent & Cowork Plugin
-
-**Deliverables:**
-1. Deal agent context compiler (assembles prompt from database state)
-2. Morning briefing generator
-3. Agent chat interface in web portal
-4. Cowork plugin with all commands and skills
-5. MCP server with all tools
-6. Verify: can use Cowork commands to interact with deal, agent provides useful briefings
+Chat interface for expert knowledge capture. Agent interviews partner, structures responses into skills and scenario definitions. Available during onboarding and post-deal debrief.
 
 ---
 
-## 14. ENVIRONMENT VARIABLES REFERENCE
+## 18. API ROUTES
 
-**`apps/web/.env.local`** (and `.env.example` at root):
+### 18.1 Existing Routes (Phases 0-2 — BUILT)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/deals` | List all deals |
+| `POST` | `/api/deals` | Create new deal |
+| `GET` | `/api/deals/[dealId]` | Get deal details |
+| `PATCH` | `/api/deals/[dealId]` | Update deal |
+| `GET` | `/api/deals/[dealId]/checklist` | Get checklist items |
+| `POST` | `/api/deals/[dealId]/parse-term-sheet` | Parse term sheet |
+| `GET` | `/api/deals/[dealId]/documents` | List document versions |
+| `POST` | `/api/deals/[dealId]/documents/generate` | Generate v1/v2/v3 |
+| `GET` | `/api/deals/[dealId]/documents/[docId]` | Get document detail |
+| `POST` | `/api/provisions/seed` | Seed provision types |
+
+### 18.2 New Routes — Event Backbone (Phase 3)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/deals/[dealId]/events` | List propagation events |
+| `GET` | `/api/deals/[dealId]/events/[eventId]` | Get event with chain |
+
+### 18.3 New Routes — Approval Queue (Phase 4)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/approval-queue` | List pending approvals |
+| `GET` | `/api/approval-queue/[chainId]` | Get action chain detail |
+| `POST` | `/api/approval-queue/[chainId]/approve` | Approve all actions |
+| `POST` | `/api/approval-queue/[chainId]/actions/[actionId]/approve` | Approve single |
+| `POST` | `/api/approval-queue/[chainId]/actions/[actionId]/reject` | Reject single |
+| `POST` | `/api/approval-queue/[chainId]/actions/[actionId]/modify` | Modify and approve |
+| `GET` | `/api/approval-queue/stats` | Queue statistics |
+
+### 18.4 New Routes — Approval Policy (Phase 4)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/deals/[dealId]/approval-policy` | Get policy |
+| `PUT` | `/api/deals/[dealId]/approval-policy` | Update policy |
+| `GET` | `/api/approval-policy/defaults` | Role-based defaults |
+
+### 18.5 New Routes — Agent Management (Phase 4, 7)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/api/deals/[dealId]/agent/activate` | On-demand activation |
+| `GET` | `/api/deals/[dealId]/agent/activations` | List activations |
+| `GET` | `/api/deals/[dealId]/agent/cost-summary` | Token cost summary |
+| `PUT` | `/api/deals/[dealId]/agent/monitoring-level` | Set monitoring level |
+| `POST` | `/api/deals/[dealId]/agent/briefing` | Generate morning briefing |
+| `POST` | `/api/deals/[dealId]/agent/chat` | Agent chat endpoint |
+
+### 18.6 New Routes — Constitution (Phase 9)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/deals/[dealId]/constitution` | Get constitution |
+| `PUT` | `/api/deals/[dealId]/constitution` | Update constitution |
+| `POST` | `/api/deals/[dealId]/constitution/encode` | Conversational encoding |
+
+### 18.7 New Routes — Disclosure Schedules (Phase 5)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/deals/[dealId]/disclosure-schedules` | List schedules |
+| `GET` | `/api/deals/[dealId]/disclosure-schedules/[scheduleId]` | Get with entries |
+| `POST` | `/api/deals/[dealId]/disclosure-schedules/generate` | Generate from SPA |
+| `POST` | `/api/deals/[dealId]/disclosure-schedules/[scheduleId]/entries` | Add entry |
+| `POST` | `/api/deals/[dealId]/disclosure-schedules/cross-reference` | Cross-reference check |
+
+### 18.8 New Routes — Negotiation (Phase 5)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/deals/[dealId]/negotiation/positions` | All positions |
+| `GET` | `/api/deals/[dealId]/negotiation/roadmap` | Get roadmap |
+| `POST` | `/api/deals/[dealId]/negotiation/roadmap/generate` | Generate roadmap |
+
+### 18.9 New Routes — Closing (Phase 6)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/deals/[dealId]/closing` | Get closing checklist |
+| `POST` | `/api/deals/[dealId]/closing/generate` | Generate from SPA |
+| `PATCH` | `/api/deals/[dealId]/closing/conditions/[conditionId]` | Update condition |
+| `PATCH` | `/api/deals/[dealId]/closing/deliverables/[deliverableId]` | Update deliverable |
+| `GET` | `/api/deals/[dealId]/closing/funds-flow` | Funds flow memo |
+| `GET` | `/api/deals/[dealId]/post-closing` | Post-closing obligations |
+
+### 18.10 New Routes — Client Management (Phase 6)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/deals/[dealId]/client/contacts` | List contacts |
+| `POST` | `/api/deals/[dealId]/client/contacts` | Add contact |
+| `GET` | `/api/deals/[dealId]/client/action-items` | List action items |
+| `POST` | `/api/deals/[dealId]/client/action-items` | Create action item |
+| `GET` | `/api/deals/[dealId]/client/communications` | List communications |
+| `POST` | `/api/deals/[dealId]/client/communications/generate` | Generate update |
+
+### 18.11 New Routes — Third Parties (Phase 6)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/deals/[dealId]/third-parties` | List third parties |
+| `POST` | `/api/deals/[dealId]/third-parties` | Add third party |
+| `PATCH` | `/api/deals/[dealId]/third-parties/[tpId]` | Update status |
+
+### 18.12 New Routes — Knowledge & Feedback (Phase 14)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/api/feedback` | Submit feedback event |
+| `GET` | `/api/deals/[dealId]/knowledge` | Get knowledge entries |
+| `POST` | `/api/knowledge/encode` | Conversational encoding |
+| `GET` | `/api/precedent/quality-report` | Quality distribution |
+
+### 18.13 New Routes — Precedent (Phase 10)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/precedent/whats-market` | Market data for provision |
+| `POST` | `/api/precedent/ingest` | Ingest new precedent |
+| `POST` | `/api/precedent/search` | Semantic search (existing, enhanced) |
+
+### 18.14 New Routes — Simulation/Observer (Phase 11, 12)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/simulation/status` | Simulation state |
+| `GET` | `/api/simulation/observer/changelog` | Observer changes |
+| `POST` | `/api/simulation/observer/revert/[commitHash]` | Revert change |
+| `GET` | `/api/simulation/report` | Evaluation report |
+
+---
+
+## 19. WEB PORTAL PAGES & COMPONENTS
+
+### 19.1 Existing Pages (Phases 0-2 — BUILT)
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | Landing | Login |
+| `/deals` | Deal List | Cards with health indicators |
+| `/deals/new` | New Deal | Create form + term sheet upload |
+| `/deals/[id]` | Deal Dashboard | Command center |
+| `/deals/[id]/checklist` | Checklist | Lifecycle stages table |
+| `/deals/[id]/documents` | Documents | Version timelines |
+| `/deals/[id]/documents/[docId]` | Document Detail | Version history, analysis |
+
+### 19.2 New Pages (Phases 3-14)
+
+| Route | Page | Phase | Description |
+|-------|------|-------|-------------|
+| `/approval-queue` | Approval Queue | 4 | Card-based pending approvals |
+| `/deals/[id]/negotiation` | Negotiation State | 5 | Provision positions, history |
+| `/deals/[id]/disclosure-schedules` | Disclosure Schedules | 5 | Schedules, entries, gaps |
+| `/deals/[id]/closing` | Closing Dashboard | 6 | Traffic light conditions view |
+| `/deals/[id]/client` | Client Management | 6 | Contacts, action items, comms |
+| `/deals/[id]/third-parties` | Third Parties | 6 | Third-party tracking |
+| `/deals/[id]/agent` | Agent Chat | 7 | Chat with Manager Agent |
+| `/deals/[id]/constitution` | Constitution | 9 | View/edit constitutional provisions |
+| `/deals/[id]/agent/cost` | Agent Cost | 4 | Token spend dashboard |
+| `/observer` | Observer Dashboard | 11 | System improvement log |
+| `/simulation` | Simulation | 12 | Simulation control and reports |
+
+### 19.3 UI Component Library
+
+Uses shadcn/ui: DataTable, Card, Badge, Tabs, Sheet, Dialog, Command, Progress.
+
+---
+
+## 20. IMPLEMENTATION PHASES
+
+### Phase 0: Scaffold & Infrastructure — COMPLETED
+- Monorepo with pnpm + Turborepo
+- All packages created
+- Next.js with Tailwind + shadcn/ui
+- Drizzle ORM with Supabase
+- 14 database tables
+- NextAuth with Microsoft provider
+- Test report: `docs/test-results/phase0_test_report.md`
+
+### Phase 1: Core Deal Flow — COMPLETED
+- Deal CRUD API + UI
+- Term sheet parser (Claude API)
+- Checklist rules engine + generation
+- Google Drive folder creation
+- Test deal "Project Mercury" created
+- Test report: `docs/test-results/phase1_test_report.md`
+
+### Phase 2: Document Generation Pipeline — COMPLETED
+- 50 SPA provision types seeded
+- Template storage + selection
+- v1/v2/v3 generation pipeline
+- Provision segmentation (47 sections)
+- EDGAR precedent database (10 deals)
+- DOCX generation
+- Google Drive upload (code correct, env blocked)
+- Test report: `docs/test-results/phase2_test_report.md`
+
+### Phase 3: MCP Infrastructure + Event Backbone — TO BUILD
+Spec Sections: 3 (Three-Layer Architecture), 5 (Event Propagation Backbone), 7.2-7.5 (MCP tools)
+Skill file: `skills/phase-03.md`
+
+### Phase 4: Approval Framework + Agent Invocation — TO BUILD
+Spec Sections: 6 (Approval Framework), 7.6-7.7 (Agent Activation/Cost)
+Skill file: `skills/phase-04.md`
+
+### Phase 5: Disclosure Schedules, Negotiation, Email Enhancement — TO BUILD
+Spec Sections: 14.1-14.2 (Disclosure, Negotiation), 14.6 (Negotiation Strategy), 12 (Email Enhancement)
+Skill file: `skills/phase-05.md`
+
+### Phase 6: Closing, Client Management, Third-Party Tracking — TO BUILD
+Spec Sections: 14.3-14.5 (Third Parties, Client, Closing)
+Skill file: `skills/phase-06.md`
+
+### Phase 7: Agent Layer (Manager, Specialists, System Expert) — TO BUILD
+Spec Sections: 7 (Agent Architecture), 9 (Constitution — referenced by Manager)
+Skill file: `skills/phase-07.md`
+
+### Phase 8: Skills System — TO BUILD
+Spec Sections: 8 (Skills System)
+Skill file: `skills/phase-08.md`
+
+### Phase 9: Partner Constitution — TO BUILD
+Spec Sections: 9 (Partner Constitution & Governance)
+Skill file: `skills/phase-09.md`
+
+### Phase 10: Precedent Intelligence Pipeline — TO BUILD
+Spec Sections: 10 (Precedent Intelligence)
+Skill file: `skills/phase-10.md`
+
+### Phase 11: Observer, Coding Agent, Testing Agent — TO BUILD
+Spec Sections: 15 (Observer & Self-Improvement), 8.6 (Coding/Testing Agents)
+Skill file: `skills/phase-11.md`
+
+### Phase 12: Simulation Framework — TO BUILD
+Spec Sections: 16 (Simulation Framework)
+Skill file: `skills/phase-12.md`
+
+### Phase 13: Mobile Approval Interface — TO BUILD
+Spec Sections: 6.4 (Mobile-First Design)
+Skill file: `skills/phase-13.md`
+
+### Phase 14: Knowledge Capture + Learning Pipeline — TO BUILD
+Spec Sections: 17 (Knowledge & Learning), 14.7 (Knowledge Capture)
+Skill file: `skills/phase-14.md`
+
+---
+
+## 21. COST MODEL & TOKEN ECONOMICS
+
+### 21.1 Estimated Token Costs per Deal Phase
+
+| Phase | Layer 1 | Layer 2 (API) | Layer 3 (Agent) | Est. Daily Cost |
+|-------|---------|---------------|-----------------|-----------------|
+| Intake & Setup | — | $2-5 | $5-10 | $7-15 (one-time) |
+| Document Drafting (per doc) | — | $5-15 | $10-20 review | $15-35 per doc |
+| Markup Analysis (per round) | — | $3-8 | $15-30 strategy | $18-38 per round |
+| DD Processing (per 10 docs) | — | $10-20 | $5-10 synthesis | $15-30 per batch |
+| Email Processing (per day) | — | $1-3 | $2-5 if significant | $3-8 |
+| Morning Briefing | — | $1-2 | $3-8 | $4-10 |
+| Negotiation Strategy | — | $2-5 | $10-20 | $12-25 (per round) |
+| Closing Preparation | — | $5-10 | $10-15 | $15-25 (one-time) |
+
+**Estimated total cost per deal (60-day transaction):** $500-2,000 in tokens
+
+### 21.2 Cost Optimization
+
+- Cache frequently-used context
+- Use Sonnet for Layer 2, Opus only for Layer 3 strategic synthesis
+- Batch Layer 2 calls where possible
+- Implement token budgets per deal with alerting at 80%
+- Graceful degradation: fall back to Layer 1-2 if budget exhausted
+
+---
+
+## 22. ENVIRONMENT & CREDENTIALS
+
+### 22.1 Required Environment Variables
 
 ```bash
-# ============================================
 # SUPABASE
-# ============================================
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
 SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
 DATABASE_URL=postgresql://postgres:...@...supabase.co:5432/postgres
 
-# ============================================
 # AUTHENTICATION
-# ============================================
-NEXTAUTH_SECRET=         # Generate: openssl rand -base64 32
+NEXTAUTH_SECRET=         # openssl rand -base64 32
 NEXTAUTH_URL=http://localhost:3000
-
-# Microsoft OAuth (for Outlook / Graph API email access)
 MICROSOFT_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 MICROSOFT_TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 MICROSOFT_CLIENT_SECRET=xxxxx
 
-# ============================================
 # AI / LLM
-# ============================================
 ANTHROPIC_API_KEY=sk-ant-...
+EMBEDDING_PROVIDER=voyage
+EMBEDDING_MODEL=voyage-3
+EMBEDDING_DIMENSIONS=1024
 
-# Embedding config
-EMBEDDING_PROVIDER=voyage   # 'voyage' or 'openai'
-EMBEDDING_MODEL=voyage-3    # or 'text-embedding-3-small'
-EMBEDDING_DIMENSIONS=1024   # 1024 for voyage-3, 1536 for openai
-
-# ============================================
 # GOOGLE DRIVE (Service Account)
-# ============================================
 GOOGLE_SERVICE_ACCOUNT_KEY_PATH=./config/google-service-account.json
-GOOGLE_DRIVE_ROOT_FOLDER_ID=   # ID of parent folder for all deal folders
+GOOGLE_DRIVE_ROOT_FOLDER_ID=
 
-# ============================================
 # APPLICATION
-# ============================================
 NODE_ENV=development
 ```
 
+### 22.2 Environment Constraints
+
+**Database: Supabase via REST API for testing**
+- Direct PostgreSQL connection (`db.*.supabase.co`) does NOT resolve in Claude Code's environment
+- Do NOT attempt `drizzle-kit push` — schema managed externally
+- For ALL testing queries, use the Supabase JS client with the service role key
+- Production code uses Drizzle ORM with `DATABASE_URL`
+
+**API Keys:**
+- Anthropic API: Real key, make real calls. Do not mock.
+- Google Drive: Real service account. Test real file operations.
+- Microsoft/Outlook: OAuth requires browser. Build correctly, verify config, cannot complete handshake in Claude Code environment.
+
+**Credentials Location:**
+All credentials in `.env.local` at repo root (copied to `apps/web/.env.local` and `packages/db/.env.local`).
+
+### 22.3 Package Management
+
+- Use `pnpm` (not npm, not yarn)
+- Install in correct package: `pnpm add <pkg> --filter @ma-deal-os/core`
+- Turborepo monorepo structure
+
 ---
 
-## NOTES FOR CLAUDE CODE
-
-1. **Start with Phase 0.** Get the monorepo scaffolded, database migrated, and auth working before building any features.
-
-2. **Use Drizzle ORM** for all database access. Define the schema in TypeScript, generate SQL migrations. Never write raw SQL in application code (except for the initial extension setup which must be done in Supabase dashboard).
-
-3. **Every LLM call must be in `packages/ai`.** No direct Anthropic API calls from API routes or the web app. The `ai` package is the single interface.
-
-4. **Type everything.** The `packages/core/src/types/` directory contains all shared types. Import them in every package. The Deal Parameter Object type is the most critical — it drives everything.
-
-5. **Error handling:** Every API route wraps in try/catch. Every LLM call has retry logic (3 attempts with exponential backoff). Every database operation is in a transaction where appropriate.
-
-6. **Environment variables:** Never hardcode credentials. Always read from `process.env`. The `.env.example` file must list every variable with a comment.
-
-7. **Google Drive operations are asynchronous.** Upload to Drive in a background job, not in the request/response cycle. Use a simple job queue (start with a database-backed queue in the `activity_log` table, upgrade to BullMQ later if needed).
-
-8. **Seed data is critical.** The system is useless without provision taxonomy, DD topics, and at least one sample deal. The `packages/db/src/seed/` directory must contain complete seed scripts that populate:
-   - 50 provision types with 2–4 variants each for SPAs
-   - 100 DD topic nodes
-   - 1 sample deal with all parameters filled in
-   - 5 sample checklist items in various lifecycle stages
-
-9. **The Cowork plugin is a separate concern.** Build it last. The web portal and API should work completely independently of Cowork. The MCP server is just another API consumer.
-
-10. **Testing approach:** For the prototype, manual testing is fine. Don't build an automated test suite yet. Focus on getting the happy path working: create deal → parse term sheet → generate checklist → generate document → analyze markup.
+*END OF SPECIFICATION*
