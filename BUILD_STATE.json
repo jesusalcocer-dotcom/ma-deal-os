@@ -1,10 +1,10 @@
 {
   "version": "2.0",
   "project": "ma-deal-os",
-  "current_phase": 14,
+  "current_phase": 15,
   "current_step": 1,
-  "current_step_name": "Pending — check skills/phase-14.md",
-  "phase_title": "Phase 14 (Next)",
+  "current_step_name": "Pending — check skills/phase-15.md",
+  "phase_title": "Phase 15 (Next)",
   "completed_phases": [
     {
       "phase": 0,
@@ -89,12 +89,18 @@
       "title": "Mobile Approval Interface",
       "completed_at": "2026-02-08T05:00:00Z",
       "test_report": "docs/test-results/phase13_test_report.md"
+    },
+    {
+      "phase": 14,
+      "title": "Knowledge Capture + Learning Pipeline",
+      "completed_at": "2026-02-08T06:00:00Z",
+      "test_report": "docs/test-results/phase14_test_report.md"
     }
   ],
-  "last_completed_step": "13.7",
-  "last_completed_at": "2026-02-08T05:00:00Z",
-  "last_commit": "8122ffb",
-  "total_commits_this_session": 49,
+  "last_completed_step": "14.10",
+  "last_completed_at": "2026-02-08T06:00:00Z",
+  "last_commit": "53da54f",
+  "total_commits_this_session": 53,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -146,6 +152,12 @@
       "item": "observer_changelog table (migration 016)",
       "severity": "HIGH",
       "impact": "API returns empty fallback. Code is correct."
+    },
+    {
+      "phase": 14,
+      "item": "feedback_events + deal_knowledge tables (migration 017)",
+      "severity": "HIGH",
+      "impact": "Feedback API returns errors. Code is correct."
     }
   ],
   "verified_items": [
@@ -374,7 +386,12 @@
       "session_id": "s-13-session1",
       "started_at": "2026-02-08T04:00:00Z",
       "steps_completed": ["13.1", "13.2", "13.3", "13.4", "13.5", "13.6", "13.7"]
+    },
+    {
+      "session_id": "s-14-session1",
+      "started_at": "2026-02-08T05:00:00Z",
+      "steps_completed": ["14.1", "14.2", "14.3", "14.4", "14.5", "14.6", "14.7", "14.8", "14.9", "14.10"]
     }
   ],
-  "notes": "Phase 13 COMPLETE. Mobile approval interface: responsive layout with bottom nav, swipe-to-approve cards (touch gestures + haptic feedback), mobile action previews with inline edit, push notification infrastructure (service worker + permission UI), mobile deal dashboard with health indicators, voice note recording (Web Audio API hold-to-record). Ready for Phase 14."
+  "notes": "Phase 14 COMPLETE. Knowledge capture + learning pipeline: feedback_events + deal_knowledge tables (migration 017), precedent quality updater, adaptive skill generator (pattern detection + skill content generation), test case generator, learning pipeline orchestrator, feedback API, knowledge encoding API (Claude-powered), deal post-mortem pipeline. Migration 017 deferred. Ready for Phase 15."
 }
