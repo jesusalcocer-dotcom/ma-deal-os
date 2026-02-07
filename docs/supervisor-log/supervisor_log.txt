@@ -1,0 +1,137 @@
+[00:06:04] [SUPERVISOR] 
+
+I'll read all the required files to understand the current state of the project.
+[00:06:04] [SUPERVISOR] [tool: Read]
+[00:06:05] [SUPERVISOR] [tool: Read]
+[00:06:08] [SUPERVISOR] Now let me read the current skill file and check for GUIDANCE.md.
+[00:06:09] [SUPERVISOR] [tool: Read]
+[00:06:10] [SUPERVISOR] [tool: Glob]
+[00:06:10] [SUPERVISOR] [tool: Glob]
+[00:07:00] [SUPERVISOR] Let me check the existing supervisor log and the migration SQL file to have full context.
+[00:07:00] [SUPERVISOR] [tool: Read]
+[00:07:01] [SUPERVISOR] [tool: Read]
+[00:07:01] [SUPERVISOR] [tool: Read]
+[00:07:04] [SUPERVISOR] Now I have full context. Let me also quickly check the build log for any recent info.
+[00:07:05] [SUPERVISOR] [tool: Read]
+[00:07:20] [SUPERVISOR] **SUPERVISOR READY**
+
+Here is my assessment of the current state:
+
+---
+
+## Current State Summary
+
+**Phase:** 3 — MCP Infrastructure + Event Backbone
+**Step:** 3.10 (Integration Test — End-to-End Event Flow)
+**Last completed:** Step 3.9 (Event API routes)
+**Last commit:** `8395f28`
+
+### What's Done (Steps 3.1–3.9)
+- MCP server package built with all tools (deal, checklist, document, precedent, system)
+- Event type definitions (`PropagationEvent`, `ActionChain`, `ProposedAction`, etc.)
+- Drizzle schema files for `propagation_events`, `action_chains`, `proposed_actions`
+- EventBus implementation with `emit()` and `process()` methods
+- Deterministic consequence maps (6 core maps)
+- Event API routes (GET events list, GET event detail with chains)
+- All builds passing (`pnpm build` succeeds)
+
+### What's Blocked
+**CRITICAL BLOCKER:** Steps 3.10 and 3.11 require the three new database tables (`propagation_events`, `action_chains`, `proposed_actions`) to actually exist in Supabase. The Build Agent cannot create them because:
+1. Direct PostgreSQL (`db.*.supabase.co`) doesn't resolve
+2. Supabase connection pooler returns "Tenant or user not found"
+3. No `psql` or Supabase CLI available
+
+**Resolution:** The SQL migration at `scripts/migrations/003-event-propagation-tables.sql` must be run manually by the human operator in the Supabase Dashboard SQL Editor.
+
+### Pending Actions
+Once the human creates the tables:
+1. Run `npx tsx scripts/test-event-pipeline.ts` to execute the integration test (Step 3.10)
+2. Run `pnpm build` + dev server verification (Step 3.11)
+3. Create Phase 3 test report
+4. Gate check → advance to Phase 4
+
+---
+
+I'm ready for escalations, phase transition reviews, or guidance requests. What do you need?
+[00:07:20] [SUPERVISOR] **SUPERVISOR READY**
+
+Here is my assessment of the current state:
+
+---
+
+## Current State Summary
+
+**Phase:** 3 — MCP Infrastructure + Event Backbone
+**Step:** 3.10 (Integration Test — End-to-End Event...
+[00:12:46] [SUPERVISOR] 
+
+## DIAGNOSE
+
+The Build Agent is stuck in a loop on Phase 3, Step 3.10. It checks if DB tables exist, they don't, it prints the SQL and asks the human to create them, then repeats. Two consecutive turns with zero progress.
+
+The error: Tables `propagation_events`, `action_chains`, `proposed_actions` don't exist in Supabase. The agent cannot create them (no direct DB access). The human hasn't run the migration SQL yet.
+
+## ROOT CAUSE
+
+**Environment constraint + human action dependency.** This is a known blocker documented since Step 3.5. The Build Agent has done everything it can — code is written, SQL migration is ready, integration test is written. The only missing piece is the human running SQL in the Supabase Dashboard. The agent is burning turns waiting for something it cannot do itself.
+
+## ALTERNATIVES
+
+1. **SKIP forward — complete Phase 3 gate with DB tests deferred, advance to Phase 4.**
+   - Tradeoff: Steps 3.10-3.11 integration tests remain unverified. Phase 3 gate is incomplete on one CRITICAL test. But all code is written and builds pass. Phase 4 (Approval Framework) also needs these tables, so we'll hit the same wall.
+   - Likelihood of success: High for forward progress on code; tables still needed eventually.
+
+2. **Write NEEDS_HUMAN.md and STOP the Build Agent.**
+   - Tradeoff: No wasted turns. Clear signal to the human. But the Build Agent sits idle until the human acts.
+   - Likelihood of success: 100% — clean stop, no wasted compute.
+
+3. **Have the Build Agent skip to Phase 4 code-only work while waiting.**
+   - Tradeoff: Phase 4 has code that can be written without DB (approval policy types, approval tier logic, UI scaffolding). But this violates the phase gate protocol — Phase 3 isn't officially complete.
+   - Likelihood of success: Medium — some Phase 4 work is possible, but testing will hit the same DB wall.
+
+## DECISION
+
+**Alternative 2: Write NEEDS_HUMAN.md and instruct the Build Agent to STOP.**
+
+Reasoning:
+- The Build Agent is wasting turns in a loop with zero possible progress
+- This is a "same step 2+ times" situation — the protocol says to escalate to human
+- The blocker is a credential/environment issue (no DB access) — explicitly listed as "beyond scope"
+- Progress over perfection applies, but there's literally no progress possible without the tables
+- The GUIDANCE.md should tell the Build Agent to stop cleanly, commit state, and wait
+- Additionally, I'll write NEEDS_HUMAN.md with clear instructions for the human
+
+Let me execute this now.
+[00:12:46] [SUPERVISOR] [tool: Bash]
+[00:14:14] [SUPERVISOR] [tool: Write]
+[00:14:29] [SUPERVISOR] [tool: Write]
+[00:14:31] [SUPERVISOR] Now let me write the decision log and commit everything.
+[00:14:32] [SUPERVISOR] [tool: Glob]
+[00:14:42] [SUPERVISOR] [tool: Write]
+[00:14:48] [SUPERVISOR] [tool: Bash]
+[00:14:57] [SUPERVISOR] Done. Here's the summary:
+
+---
+
+## Supervisor Action Taken
+
+**Issue:** Build Agent stuck in loop — 2 turns checking for DB tables that don't exist, zero progress possible.
+
+**Root cause:** Environment constraint. No DDL access to Supabase from the build environment. This is a known blocker since Step 3.5.
+
+**Action:**
+1. **GUIDANCE.md** — Tells Build Agent to stop looping, write the Phase 3 test report as CONDITIONAL PASS, update BUILD_STATE, commit, and stop the session.
+2. **NEEDS_HUMAN.md** — Clear instructions for you: run `scripts/migrations/003-event-propagation-tables.sql` in the Supabase Dashboard SQL Editor (30-second action). Then delete both files and restart the Build Agent.
+3. **Decision logged** to `docs/supervisor-log/decisions.md`.
+4. All committed and pushed (`95d7dec`).
+
+**What you need to do:** Open Supabase Dashboard → SQL Editor → paste the SQL from `scripts/migrations/003-event-propagation-tables.sql` → Run. Then restart the build.
+[00:14:57] [SUPERVISOR] Done. Here's the summary:
+
+---
+
+## Supervisor Action Taken
+
+**Issue:** Build Agent stuck in loop — 2 turns checking for DB tables that don't exist, zero progress possible.
+
+**Root cause:** Environment...
