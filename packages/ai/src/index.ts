@@ -40,3 +40,5 @@ export { ModelRouter } from './routing/model-router';
 export type { ModelSelection, DealContext, RoutingConfig, ModelTier, NoveltyFactors } from './routing/types';
 export { MODEL_IDS } from './routing/types';
 export { calculateNoveltyScore } from './routing/novelty-scorer';
+export { DistillationTrialRunner } from './distillation/trial-runner';
+export type { DistillationTrialResult, TrialDetail, ShadowTestResult, SpotCheckResult } from './distillation/types';
