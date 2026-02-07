@@ -2,9 +2,9 @@
   "version": "2.0",
   "project": "ma-deal-os",
   "current_phase": 6,
-  "current_step": 1,
-  "current_step_name": "Pending — check skills/phase-06.md",
-  "phase_title": "Phase 6 (Next)",
+  "current_step": 5,
+  "current_step_name": "Step 6.5 — Closing Checklist Generation",
+  "phase_title": "Phase 6: Closing Mechanics, Client Management, Third-Party Tracking",
   "completed_phases": [
     {
       "phase": 0,
@@ -43,10 +43,10 @@
       "test_report": "docs/test-results/phase5_test_report.md"
     }
   ],
-  "last_completed_step": "5.10",
-  "last_completed_at": "2026-02-07T16:00:00Z",
-  "last_commit": "5a17cd0",
-  "total_commits_this_session": 1,
+  "last_completed_step": "6.4",
+  "last_completed_at": "2026-02-07T18:00:00Z",
+  "last_commit": "5921685",
+  "total_commits_this_session": 4,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -56,6 +56,24 @@
       "item": "Google Drive upload - container environment blocks OAuth",
       "severity": "MEDIUM",
       "impact": "Code is correct, cannot verify in this environment"
+    },
+    {
+      "phase": 6,
+      "item": "deal_third_parties table (migration 010)",
+      "severity": "HIGH",
+      "impact": "POST returns 500, GET returns empty fallback"
+    },
+    {
+      "phase": 6,
+      "item": "client_contacts, client_action_items, client_communications tables (migration 011)",
+      "severity": "HIGH",
+      "impact": "POST returns 500, GET returns empty fallback"
+    },
+    {
+      "phase": 6,
+      "item": "closing_checklists, closing_conditions, closing_deliverables, post_closing_obligations tables (migration 012)",
+      "severity": "HIGH",
+      "impact": "Tables need creation via Supabase Dashboard"
     }
   ],
   "verified_items": [
@@ -112,6 +130,12 @@
       "item": "Email action item extraction pipeline (Anthropic API)",
       "verified_at": "2026-02-07T14:40:00Z",
       "result": "4 action items extracted with priorities and due dates"
+    },
+    {
+      "phase": 6,
+      "item": "Client communication generation pipeline (Anthropic API)",
+      "verified_at": "2026-02-07T18:00:00Z",
+      "result": "Professional status update generated for Project Mercury"
     }
   ],
   "session_history": [
@@ -154,7 +178,12 @@
       "session_id": "s-verify-session4",
       "started_at": "2026-02-07T14:30:00Z",
       "steps_completed": ["verify-deferred-items"]
+    },
+    {
+      "session_id": "s-06-session1",
+      "started_at": "2026-02-07T17:00:00Z",
+      "steps_completed": ["6.1", "6.2", "6.3", "6.4"]
     }
   ],
-  "notes": "All deferred items VERIFIED (22/22 tests passing). Only remaining deferred: Google Drive OAuth (env limitation). Migrations 004-009 all confirmed working. Anthropic API pipelines all confirmed working (9 schedules, 6 positions, 4 action items). Ready for Phase 6."
+  "notes": "Phase 6 in progress. Steps 6.1-6.4 complete: deal_third_parties table + API, client management tables + API, client communication AI pipeline (tested live), closing tables. Migrations 010-012 need Supabase Dashboard creation. Next: Step 6.5 (closing checklist generation pipeline)."
 }
