@@ -1,10 +1,10 @@
 {
   "version": "2.0",
   "project": "ma-deal-os",
-  "current_phase": 7,
-  "current_step": 2,
-  "current_step_name": "Manager Agent Context Loader",
-  "phase_title": "Phase 7: Agent Layer",
+  "current_phase": 8,
+  "current_step": 1,
+  "current_step_name": "Pending — check skills/phase-08.md",
+  "phase_title": "Phase 8 (Next)",
   "completed_phases": [
     {
       "phase": 0,
@@ -47,12 +47,18 @@
       "title": "Closing Mechanics, Client Management, Third-Party Tracking",
       "completed_at": "2026-02-07T19:00:00Z",
       "test_report": "docs/test-results/phase6_test_report.md"
+    },
+    {
+      "phase": 7,
+      "title": "Agent Layer (Manager, Specialists, System Expert)",
+      "completed_at": "2026-02-07T21:00:00Z",
+      "test_report": "docs/test-results/phase7_test_report.md"
     }
   ],
-  "last_completed_step": "7.1",
-  "last_completed_at": "2026-02-07T20:00:00Z",
-  "last_commit": "d1e8f89",
-  "total_commits_this_session": 1,
+  "last_completed_step": "7.9",
+  "last_completed_at": "2026-02-07T21:00:00Z",
+  "last_commit": "e515586",
+  "total_commits_this_session": 9,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -160,6 +166,30 @@
       "item": "All 3 new UI pages return HTTP 200",
       "verified_at": "2026-02-07T19:00:00Z",
       "result": "closing, client, third-parties all return 200"
+    },
+    {
+      "phase": 7,
+      "item": "Manager Agent chat produces strategic advice",
+      "verified_at": "2026-02-07T21:00:00Z",
+      "result": "Coherent deal status analysis, 1172 tokens"
+    },
+    {
+      "phase": 7,
+      "item": "Morning briefing generation",
+      "verified_at": "2026-02-07T21:00:00Z",
+      "result": "5 priorities + 5 risk flags, 1604 tokens"
+    },
+    {
+      "phase": 7,
+      "item": "Agent-driven event analysis (critical DD finding)",
+      "verified_at": "2026-02-07T21:00:00Z",
+      "result": "8.7K char analysis with action recommendations and escalation"
+    },
+    {
+      "phase": 7,
+      "item": "Agent page renders",
+      "verified_at": "2026-02-07T21:00:00Z",
+      "result": "HTTP 200 at /deals/[dealId]/agent"
     }
   ],
   "session_history": [
@@ -212,7 +242,12 @@
       "session_id": "s-06-session2",
       "started_at": "2026-02-07T18:30:00Z",
       "steps_completed": ["6.5", "6.6", "6.7", "6.8", "6.9", "6.10"]
+    },
+    {
+      "session_id": "s-07-session1",
+      "started_at": "2026-02-07T20:00:00Z",
+      "steps_completed": ["7.1", "7.2", "7.3", "7.4", "7.5", "7.6", "7.7", "7.8", "7.9"]
     }
   ],
-  "notes": "Phase 7 IN PROGRESS. Step 7.1 complete (agent types). Working on Step 7.2 (Manager Context Loader)."
+  "notes": "Phase 7 COMPLETE. Agent layer: Manager Agent (context loader, system prompt, activation, briefing), 5 Specialist configs (drafter, analyst, negotiation, email, closing), System Expert, Chat API + UI. All 15 tests pass. Ready for Phase 8."
 }
