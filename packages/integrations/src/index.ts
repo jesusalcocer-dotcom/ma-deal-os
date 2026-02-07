@@ -2,3 +2,7 @@ export { getDriveClient, getRootFolderId } from './google-drive/client';
 export { createDealFolderStructure } from './google-drive/folder-structure';
 export { extractTextFromDocx, extractHtmlFromDocx } from './documents/docx-reader';
 export { extractTextFromPdf } from './documents/pdf-reader';
+export { generateDocxFromContent, generateDocxFromText } from './documents/docx-writer';
+export { segmentDocument } from './documents/provision-segmenter';
+export type { DocumentContent } from './documents/docx-writer';
+export type { ProvisionSegment } from './documents/provision-segmenter';
