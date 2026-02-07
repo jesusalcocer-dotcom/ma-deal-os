@@ -17,5 +17,7 @@ export { encodeConstitution } from './pipelines/constitution-encoder';
 export { analyzeWhatsMarket } from './pipelines/whats-market';
 export type { WhatsMarketInput, WhatsMarketResult } from './pipelines/whats-market';
 export type { ConstitutionEncodingResult } from './pipelines/constitution-encoder';
+export { runDealPostMortem } from './pipelines/deal-post-mortem';
+export type { PostMortemResult } from './pipelines/deal-post-mortem';
 export * from './agents';
 export { loadSkills, findApplicableSkills } from './skills';
