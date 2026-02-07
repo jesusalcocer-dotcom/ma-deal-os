@@ -45,8 +45,8 @@
   ],
   "last_completed_step": "5.10",
   "last_completed_at": "2026-02-07T16:00:00Z",
-  "last_commit": "eb35bb3",
-  "total_commits_this_session": 13,
+  "last_commit": "5a17cd0",
+  "total_commits_this_session": 1,
   "attempts_on_current_step": 0,
   "max_attempts": 3,
   "blocking_issues": [],
@@ -56,48 +56,62 @@
       "item": "Google Drive upload - container environment blocks OAuth",
       "severity": "MEDIUM",
       "impact": "Code is correct, cannot verify in this environment"
+    }
+  ],
+  "verified_items": [
+    {
+      "phase": 4,
+      "item": "approval_policies table (migration 004)",
+      "verified_at": "2026-02-07T14:40:00Z",
+      "result": "INSERT/SELECT/PUT all work"
     },
     {
       "phase": 4,
-      "item": "approval_policies table needs creation via Supabase Dashboard (migration 004)",
-      "severity": "HIGH",
-      "impact": "GET falls back to default policy correctly; PUT requires table to exist"
+      "item": "agent_activations table (migration 005)",
+      "verified_at": "2026-02-07T14:40:00Z",
+      "result": "INSERT works, cost stored correctly as 0.18"
     },
     {
       "phase": 4,
-      "item": "agent_activations table needs creation via Supabase Dashboard (migration 005)",
-      "severity": "HIGH",
-      "impact": "Cost tracking code verified; DB operations need table"
-    },
-    {
-      "phase": 4,
-      "item": "deals.monitoring_level column needs creation via Supabase Dashboard (migration 006)",
-      "severity": "HIGH",
-      "impact": "PUT returns fallback; column needed for persistence"
+      "item": "deals.monitoring_level column (migration 006)",
+      "verified_at": "2026-02-07T14:40:00Z",
+      "result": "UPDATE works, value persisted correctly"
     },
     {
       "phase": 5,
       "item": "disclosure_schedules + disclosure_entries tables (migration 007)",
-      "severity": "HIGH",
-      "impact": "CRUD returns empty; generation can't persist"
+      "verified_at": "2026-02-07T14:40:00Z",
+      "result": "INSERT/SELECT/join all work"
     },
     {
       "phase": 5,
       "item": "negotiation_positions + negotiation_roadmaps tables (migration 008)",
-      "severity": "HIGH",
-      "impact": "Positions generated in-memory; not persisted"
+      "verified_at": "2026-02-07T14:40:00Z",
+      "result": "INSERT works for both tables"
     },
     {
       "phase": 5,
-      "item": "deal_emails extracted_positions/extracted_action_items columns (migration 009)",
-      "severity": "HIGH",
-      "impact": "Extraction results can't be stored"
+      "item": "deal_emails extracted columns (migration 009)",
+      "verified_at": "2026-02-07T14:40:00Z",
+      "result": "JSONB columns store and return data correctly"
     },
     {
       "phase": 5,
-      "item": "Anthropic API credits exhausted — AI pipelines untested live",
-      "severity": "HIGH",
-      "impact": "Position/action item extraction, disclosure generation, roadmap generation all build but can't call Claude"
+      "item": "Disclosure generation pipeline (Anthropic API)",
+      "verified_at": "2026-02-07T14:40:00Z",
+      "result": "9 schedules generated from sample SPA text"
+    },
+    {
+      "phase": 5,
+      "item": "Email position extraction pipeline (Anthropic API)",
+      "verified_at": "2026-02-07T14:40:00Z",
+      "result": "6 positions extracted from sample negotiation email"
+    },
+    {
+      "phase": 5,
+      "item": "Email action item extraction pipeline (Anthropic API)",
+      "verified_at": "2026-02-07T14:40:00Z",
+      "result": "4 action items extracted with priorities and due dates"
     }
   ],
   "session_history": [
@@ -135,7 +149,12 @@
       "session_id": "s-04-05-session3",
       "started_at": "2026-02-07T14:00:00Z",
       "steps_completed": ["4.6", "4.7", "4.8", "5.1", "5.2", "5.3", "5.4", "5.5", "5.6", "5.7", "5.8", "5.9", "5.10"]
+    },
+    {
+      "session_id": "s-verify-session4",
+      "started_at": "2026-02-07T14:30:00Z",
+      "steps_completed": ["verify-deferred-items"]
     }
   ],
-  "notes": "Phases 4-5 COMPLETE this session. 13 commits. Phase 4: 11/11 integration tests passing. Phase 5: 11/11 integration tests passing. Anthropic API credits exhausted — AI pipelines build but can't live-test. 6 DB migrations pending (004-009). Advancing to Phase 6."
+  "notes": "All deferred items VERIFIED (22/22 tests passing). Only remaining deferred: Google Drive OAuth (env limitation). Migrations 004-009 all confirmed working. Anthropic API pipelines all confirmed working (9 schedules, 6 positions, 4 action items). Ready for Phase 6."
 }
