@@ -3,8 +3,8 @@
   "project": "ma-deal-os",
 
   "current_phase": 3,
-  "current_step": 1,
-  "current_step_name": "Phase 3: MCP Infrastructure + Event Backbone",
+  "current_step": 2,
+  "current_step_name": "Deal Operations MCP Tools",
   "phase_title": "MCP Infrastructure + Event Backbone",
 
   "completed_phases": [
@@ -28,10 +28,10 @@
     }
   ],
 
-  "last_completed_step": null,
-  "last_completed_at": null,
-  "last_commit": null,
-  "total_commits_this_session": 0,
+  "last_completed_step": "3.1",
+  "last_completed_at": "2026-02-07T02:40:00Z",
+  "last_commit": "9a4457b",
+  "total_commits_this_session": 1,
 
   "attempts_on_current_step": 0,
   "max_attempts": 3,
@@ -46,7 +46,13 @@
     }
   ],
 
-  "session_history": [],
+  "session_history": [
+    {
+      "session_id": "s-03-20260206-213854-a49117",
+      "started_at": "2026-02-07T02:38:00Z",
+      "steps_completed": ["3.1"]
+    }
+  ],
 
-  "notes": "Phases 0-2 were built and tested by prior Claude Code sessions. Phase 2 test report confirms 10/10 critical tests passing. Project Mercury test deal exists in Supabase with checklist items and 3 document versions (v1 template, v2 precedent, v3 scrubbed). 50 provision types seeded. 10 EDGAR precedent deals harvested. Starting Phase 3 with MCP server infrastructure and event propagation backbone."
+  "notes": "Phase 3 in progress. Step 3.1 complete: MCP server builds with deal tools (get_deal_state, list_deals). Fixed @ma-deal-os/ai missing @types/node."
 }
