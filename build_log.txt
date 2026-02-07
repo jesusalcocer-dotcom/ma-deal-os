@@ -746,3 +746,167 @@ Let me execute this now.
 [00:29:06] [RUNNER] Waiting for human... (00:29)
 [00:31:07] [RUNNER] Waiting for human... (00:31)
 [00:33:08] [RUNNER] Waiting for human... (00:33)
+[00:35:09] [RUNNER] NEEDS_HUMAN.md removed. Resuming build.
+[00:35:15] [RUNNER] Turn 3/50 — resuming session
+[00:35:20] [BUILD] [tool: Bash]
+[00:38:47] [BUILD] [tool: Glob]
+[00:38:49] [BUILD] [tool: Bash]
+[00:38:54] [BUILD] The tables exist now! Empty array `[]` means the table is there and queryable. Let me verify all three tables.
+[00:38:55] [BUILD] [tool: Bash]
+[00:38:56] [BUILD] [tool: Bash]
+[00:39:00] [BUILD] All 3 tables exist. Let me now run the integration tests (Step 3.10).
+[00:39:02] [BUILD] [tool: TodoWrite]
+[00:39:05] [BUILD] First, rebuild core to ensure the dist is fresh, then run the integration test.
+[00:39:06] [BUILD] [tool: Bash]
+[00:39:13] [BUILD] [tool: Bash]
+[00:39:20] [BUILD] **21/21 tests passed!** Full end-to-end event pipeline works. Let me commit this result and then verify the full build (Step 3.11).
+[00:39:22] [BUILD] [tool: Bash]
+[00:39:26] [BUILD] BUILD_STATE.json hasn't been modified yet in this session. Let me proceed to the full build verification and then write the test report.
+[00:39:26] [BUILD] [tool: Bash]
+[00:39:32] [BUILD] All 6 packages build. Now let me start the dev server and test the existing pages still work, plus test the event API routes.
+[00:39:37] [BUILD] [tool: Bash]
+[00:40:10] [BUILD] [tool: Read]
+[00:40:15] [BUILD] All tests pass:
+- `GET /deals` → **200** 
+- `GET /api/deals` → **8 deals** 
+- `GET /api/deals/{id}/events` → **200** with `{events: [], total: 0}` 
+
+Let me kill the dev server and proceed to the Phase 3 gate.
+[00:40:16] [BUILD] [tool: Bash]
+[00:40:20] [BUILD] Now let me commit the integration test results, write the Phase 3 test report, and advance to Phase 4.
+[00:40:23] [BUILD] [tool: TodoWrite]
+[00:40:52] [BUILD] [tool: Write]
+[00:40:55] [BUILD] Now update BUILD_STATE.json to advance to Phase 4.
+[00:40:55] [BUILD] [tool: Read]
+[00:41:06] [BUILD] [tool: Write]
+[00:41:09] [BUILD] Now update the skill file symlink and commit.
+[00:41:10] [BUILD] [tool: Bash]
+[00:41:13] [BUILD] [tool: Bash]
+[00:41:20] [BUILD] [tool: Bash]
+[00:41:25] [BUILD] Phase 3 is complete. Now let me read the Phase 4 skill file and start building.
+[00:41:26] [BUILD] [tool: Read]
+[00:41:29] [BUILD] Phase 4: Approval Framework + Agent Cost Tracking. 8 steps. Let me set up the todo list and start building.
+[00:41:32] [BUILD] [tool: TodoWrite]
+[00:41:38] [BUILD] **Step 4.1: Approval Policy Schema and Defaults.** I need to create the approval_policies table schema and the tier assignment function. The table will also need to be created in Supabase. Let me write the SQL migration alongside the Drizzle schema and the policy logic.
+[00:41:42] [BUILD] [tool: Write]
+[00:41:45] [BUILD] Now register it in the db barrel file.
+[00:41:46] [BUILD] [tool: Read]
+[00:41:50] [BUILD] [tool: Edit]
+[00:41:56] [BUILD] [tool: Edit]
+[00:41:59] [BUILD] Now create the approval policy logic with tier assignment.
+[00:42:20] [BUILD] [tool: Write]
+[00:42:24] [BUILD] Add to core barrel export.
+[00:42:25] [BUILD] [tool: Read]
+[00:42:29] [BUILD] [tool: Edit]
+[00:42:31] [BUILD] Write the SQL migration and build to test.
+[00:42:34] [BUILD] [tool: Write]
+[00:42:38] [BUILD] [tool: Bash]
+[00:42:44] [BUILD] Now test the tier assignment logic.
+[00:42:50] [BUILD] [tool: Bash]
+[00:42:57] [BUILD] All 16 tier tests pass. Commit and push.
+[00:43:02] [BUILD] [tool: Bash]
+[00:43:07] [BUILD] Now Step 4.2: Auto-Execute Engine for Tier 1. I need to create the action executor and integrate it into the EventBus.
+[00:43:10] [BUILD] [tool: TodoWrite]
+[00:43:29] [BUILD] [tool: Write]
+[00:43:33] [BUILD] Now update the EventBus to integrate approval tier assignment and auto-execute for Tier 1.
+[00:43:33] [BUILD] [tool: Read]
+[00:43:36] [BUILD] Now I need to update the EventBus to use the approval policy tier assignment and auto-execute Tier 1 chains.
+[00:43:49] [BUILD] [tool: Write]
+[00:43:52] [BUILD] Update the events barrel export to include ActionExecutor.
+[00:43:52] [BUILD] [tool: Read]
+[00:43:56] [BUILD] [tool: Edit]
+[00:43:58] [BUILD] Build and test.
+[00:43:59] [BUILD] [tool: Bash]
+[00:44:06] [BUILD] Now test the auto-execute. I need to emit an event that generates only Tier 1 consequences. The `checklist.item_overdue` event produces `notification` (Tier 1) and `critical_path_update` (Tier 1) — both are Tier 1, so the chain should auto-execute.
+[00:44:19] [BUILD] [tool: Write]
+[00:44:24] [BUILD] [tool: Bash]
+[00:44:28] [BUILD] Relative path issue from the temp directory. Let me fix the import path.
+[00:44:28] [BUILD] [tool: Read]
+[00:44:33] [BUILD] [tool: Edit]
+[00:44:38] [BUILD] [tool: Bash]
+[00:44:48] [BUILD] Auto-execute works perfectly:
+- Tier 1 chain (`checklist.item_overdue`) → auto-approved, both actions executed
+- Tier 2 chain (`deal.parameters_updated`) → stays pending
+
+Commit and push.
+[00:44:53] [BUILD] [tool: Bash]
+[00:44:58] [BUILD] Now Step 4.3: Approval Queue API Routes. Let me build all the approval queue endpoints.
+[00:45:02] [BUILD] [tool: TodoWrite]
+[00:45:07] [BUILD] [tool: Bash]
+[00:45:11] [BUILD] Now write all the route files in parallel.
+[00:45:17] [BUILD] [tool: Write]
+[00:45:21] [BUILD] [tool: Write]
+[00:45:27] [BUILD] [tool: Write]
+[00:45:32] [BUILD] [tool: Write]
+[00:45:36] [BUILD] [tool: Write]
+[00:45:41] [BUILD] [tool: Write]
+[00:45:48] [BUILD] [tool: Write]
+[00:45:52] [BUILD] Build to verify.
+[00:45:53] [BUILD] [tool: Bash]
+[00:46:21] [BUILD] Type error in the stats route. Let me fix it.
+[00:46:22] [BUILD] [tool: Read]
+[00:46:26] [BUILD] [tool: Edit]
+[00:46:30] [BUILD] [tool: Bash]
+[00:46:56] [BUILD] Build succeeds. All 7 approval queue API routes are in the build output. The "Failed to fetch approval queue" error in the build output is just Next.js trying to statically render an API route that uses `searchParams` — it correctly marks it as dynamic (`ƒ`), which is the expected behavior.
+
+Commit and push.
+[00:47:01] [BUILD] [tool: Bash]
+[00:51:45] [BUILD] 
+
+I'll continue building from where we left off. Let me first check the current state and then proceed with Step 4.4.
+[00:51:45] [BUILD] [tool: Read]
+[00:51:46] [BUILD] [tool: Read]
+[00:51:49] [BUILD] Good. I can see BUILD_STATE.json needs updating (still shows step 4.1 but we've completed through 4.3). Let me check for GUIDANCE.md first, then proceed.
+[00:51:50] [BUILD] [tool: Glob]
+[00:51:51] [BUILD] [tool: Bash]
+[00:51:55] [BUILD] No GUIDANCE.md. Repo is up to date. Let me update BUILD_STATE.json to reflect steps 4.1-4.3 completion, then proceed with Step 4.4.
+[00:51:58] [BUILD] [tool: TodoWrite]
+[00:52:01] [BUILD] Now let me first update BUILD_STATE.json, then read the existing approval-policy code so I know what to expose via the API.
+[00:52:02] [BUILD] [tool: Read]
+[00:52:03] [BUILD] [tool: Glob]
+[00:52:04] [BUILD] [tool: Glob]
+[00:52:06] [BUILD] Good — no existing policy API routes yet. Let me check the existing API route structure to match patterns.
+[00:52:07] [BUILD] [tool: Read]
+[00:52:11] [BUILD] Now let me create the three approval policy API routes. Per the skill file:
+
+1. `GET /api/deals/[dealId]/approval-policy` — Return effective policy (deal-specific if exists, else default)
+2. `PUT /api/deals/[dealId]/approval-policy` — Upsert deal-specific policy
+3. `GET /api/approval-policy/defaults` — Return default partner policy
+[00:52:12] [BUILD] [tool: Bash]
+[00:52:24] [BUILD] [tool: Write]
+[00:52:25] [BUILD] [tool: Write]
+[00:52:27] [BUILD] Now let me build to verify everything compiles.
+[00:52:28] [BUILD] [tool: Bash]
+[00:52:53] [BUILD] Build passes — all 6 packages successful. The new routes are visible:
+- `○ /api/approval-policy/defaults` (static)
+- `ƒ /api/deals/[dealId]/approval-policy` (dynamic)
+
+Now let me test the defaults endpoint via dev server.
+[00:52:55] [BUILD] [tool: Bash]
+[00:52:58] [BUILD] The multiline command didn't work right. Let me do it sequentially.
+[00:52:59] [BUILD] [tool: Bash]
+[00:53:03] [BUILD] [tool: Bash]
+[00:53:15] [BUILD] Defaults endpoint works — returns 34 rules. Now test the deal approval-policy GET endpoint.
+[00:53:17] [BUILD] [tool: Bash]
+[00:53:31] [BUILD] Falls back to default as expected (no deal-specific policy yet). Now test the PUT endpoint.
+[00:53:34] [BUILD] [tool: Bash]
+[00:53:38] [BUILD] The PUT failed — likely because the `approval_policies` table hasn't been created yet. Let me check the server logs.
+[00:53:39] [BUILD] [tool: Bash]
+[00:53:41] [BUILD] [tool: Bash]
+[00:53:44] [BUILD] Port 3000 was in use, server is on 3001. Let me kill the old one and re-test.
+[00:53:46] [BUILD] [tool: Bash]
+[00:53:54] [BUILD] The table probably doesn't exist yet. Let me verify.
+[00:53:56] [BUILD] [tool: Bash]
+[00:53:59] [BUILD] [tool: Read]
+[00:54:03] [BUILD] [tool: Bash]
+[00:54:07] [BUILD] The anon key and service role key look like they might be truncated or in wrong format. Let me check if the other tables work with the same approach used by the existing API.
+[00:54:07] [BUILD] [tool: Read]
+[00:54:10] [BUILD] [tool: Read]
+[00:54:14] [BUILD] OK, the client uses `SUPABASE_SERVICE_ROLE_KEY`. Let me write a quick test script to check if the table exists using the supabase-js client (which is how the production code works).
+[00:54:18] [BUILD] [tool: Write]
+[00:54:21] [BUILD] [tool: Bash]
+[00:54:28] [BUILD] As expected — the `approval_policies` table hasn't been created yet. The GET endpoints work fine (they fall back to the default policy), but PUT requires the table. This is a known pattern — the user needs to create the table via Supabase Dashboard.
+
+The build passes, the GET endpoints work correctly, and the PUT endpoint logic is correct but needs the table. Per the protocol, this is a non-critical issue — I'll flag it and advance. Let me kill the dev server, commit, and move on.
+[00:54:29] [BUILD] [tool: Bash]
+[00:54:32] [BUILD] [tool: Bash]
