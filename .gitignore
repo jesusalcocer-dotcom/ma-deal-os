@@ -152,3 +152,4 @@ test-data/precedent-database
 
 # Generated documents (binary artifacts)
 generated-documents/
+.vercel
