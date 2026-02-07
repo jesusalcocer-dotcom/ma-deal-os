@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { PropagationEventType, PropagationEvent } from '../types/events';
+import type { HardConstraint, PartnerConstitution } from '../types/constitution';
 import { resolveConsequences } from '../rules/consequence-maps';
 import { assignApprovalTier } from '../rules/approval-policy';
 import { ActionExecutor } from './action-executor';
@@ -113,8 +114,23 @@ export class EventBus {
       console.error(`Failed to create proposed actions: ${actionsError.message}`);
     }
 
-    // Auto-execute Tier 1 chains immediately
-    if (maxTier === 1 && insertedActions) {
+    // Check constitution constraints before auto-executing
+    const constitutionViolation = await this.checkConstitution(
+      event.deal_id,
+      consequences.map((c) => c.type)
+    );
+
+    if (constitutionViolation) {
+      // Elevate to Tier 3 and mark constitutional violation
+      await this.supabase
+        .from('action_chains')
+        .update({
+          approval_tier: 3,
+          summary: `[CONSTITUTIONAL VIOLATION] ${constitutionViolation.description} — ${summary.substring(0, 400)}`,
+        })
+        .eq('id', chain.id);
+    } else if (maxTier === 1 && insertedActions) {
+      // Auto-execute Tier 1 chains only if no constitutional violation
       await this.autoExecuteChain(chain.id, insertedActions);
     }
 
@@ -141,6 +157,86 @@ export class EventBus {
         approved_at: new Date().toISOString(),
       })
       .eq('id', chainId);
+  }
+
+  /**
+   * Check proposed actions against the deal's constitutional hard constraints.
+   * Returns the violated constraint if found, null otherwise.
+   */
+  private async checkConstitution(
+    dealId: string,
+    actionTypes: string[]
+  ): Promise<HardConstraint | null> {
+    try {
+      const { data: deal } = await this.supabase
+        .from('deals')
+        .select('constitution')
+        .eq('id', dealId)
+        .single();
+
+      const constitution = deal?.constitution as PartnerConstitution | null;
+      if (!constitution?.hard_constraints?.length) return null;
+
+      // Pattern-match action types against constraint rules
+      for (const constraint of constitution.hard_constraints) {
+        if (constraint.consequence !== 'block_and_escalate' && constraint.consequence !== 'escalate') {
+          continue;
+        }
+
+        // Communication constraints: block client-facing actions
+        if (
+          constraint.category === 'communication' &&
+          actionTypes.some((t) =>
+            ['client_communication', 'notification'].includes(t) &&
+            constraint.rule.toLowerCase().includes('client')
+          )
+        ) {
+          return constraint;
+        }
+
+        // Financial constraints: block financial-impact actions
+        if (
+          constraint.category === 'financial' &&
+          actionTypes.some((t) =>
+            ['document_modification', 'negotiation_update'].includes(t)
+          ) &&
+          constraint.rule.toLowerCase().includes('financial')
+        ) {
+          return constraint;
+        }
+
+        // Negotiation constraints: block negotiation changes
+        if (
+          constraint.category === 'negotiation' &&
+          actionTypes.some((t) =>
+            ['negotiation_update', 'document_modification'].includes(t)
+          )
+        ) {
+          return constraint;
+        }
+
+        // Drafting constraints: block document modifications
+        if (
+          constraint.category === 'drafting' &&
+          actionTypes.some((t) => t === 'document_modification')
+        ) {
+          return constraint;
+        }
+
+        // Process constraints: generic escalation for any matching action
+        if (
+          constraint.category === 'process' &&
+          constraint.rule.toLowerCase().includes('tier3')
+        ) {
+          return constraint;
+        }
+      }
+
+      return null;
+    } catch {
+      // If constitution column doesn't exist yet, no violation
+      return null;
+    }
   }
 
   private async markProcessed(eventId: string): Promise<void> {
