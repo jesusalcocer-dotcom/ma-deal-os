@@ -21,3 +21,7 @@ export { runDealPostMortem } from './pipelines/deal-post-mortem';
 export type { PostMortemResult } from './pipelines/deal-post-mortem';
 export * from './agents';
 export { loadSkills, findApplicableSkills } from './skills';
+export { ModelRouter } from './routing/model-router';
+export type { ModelSelection, DealContext, RoutingConfig, ModelTier, NoveltyFactors } from './routing/types';
+export { MODEL_IDS } from './routing/types';
+export { calculateNoveltyScore } from './routing/novelty-scorer';
