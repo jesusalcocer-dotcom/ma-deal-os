@@ -2,10 +2,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, FolderKanban, Settings } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, Settings, ShieldCheck } from 'lucide-react';
 
 const navItems = [
   { href: '/deals', label: 'Deals', icon: FolderKanban },
+  { href: '/approval-queue', label: 'Approvals', icon: ShieldCheck },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
