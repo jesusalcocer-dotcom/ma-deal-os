@@ -341,9 +341,29 @@ function triggerSelfEvaluation(
         output: params.output,
         sourceDocuments: [],
         dealContext: { dealId: params.dealId },
-      }).then((evaluation) => {
+      }).then(async (evaluation) => {
         const router = new ModelRouter(supabase);
-        return router.recordScore(params.agentType, evaluation.overallScore, params.model);
+        await router.recordScore(params.agentType, evaluation.overallScore, params.model);
+
+        // Auto-store high-scoring Opus outputs as distillation candidates
+        if (evaluation.overallScore >= 0.90 && params.model.includes('opus')) {
+          try {
+            const { ExemplarService } = await import('../../evaluation/exemplar-service');
+            const exemplarService = new ExemplarService(supabase);
+            await exemplarService.addExemplar({
+              sourceType: 'internal_opus',
+              documentType: params.agentType,
+              dealCharacteristics: {},
+              content: { output: params.output.substring(0, 10000) },
+              qualityScore: evaluation.overallScore,
+              generationModel: params.model,
+              evaluatorScores: evaluation.scores,
+            });
+            await exemplarService.updateDistillationCount(params.agentType);
+          } catch {
+            // Exemplar storage is non-critical
+          }
+        }
       });
     })
     .catch((err: unknown) => {

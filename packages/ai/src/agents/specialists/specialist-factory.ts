@@ -220,13 +220,34 @@ function triggerSpecialistEvaluation(
       output,
       sourceDocuments: [],
       dealContext: { dealId },
-    }).then((evaluation) => {
+    }).then(async (evaluation) => {
       const { ModelRouter: MR } = require('../../routing/model-router');
       const router = new MR(sb);
-      return router.recordScore(taskType, evaluation.overallScore, modelUsed);
+      await router.recordScore(taskType, evaluation.overallScore, modelUsed);
+
+      // Auto-store high-scoring Opus outputs as distillation candidates
+      if (evaluation.overallScore >= 0.90 && modelUsed.includes('opus')) {
+        try {
+          const { ExemplarService } = await import('../../evaluation/exemplar-service');
+          const exemplarService = new ExemplarService(sb);
+          await exemplarService.addExemplar({
+            sourceType: 'internal_opus',
+            documentType: taskType,
+            dealCharacteristics: {},
+            content: { output: output.substring(0, 10000) },
+            qualityScore: evaluation.overallScore,
+            generationModel: modelUsed,
+            evaluatorScores: evaluation.scores,
+          });
+          await exemplarService.updateDistillationCount(taskType);
+        } catch {
+          // Exemplar storage is non-critical
+        }
+      }
     });
-  }).catch((err) => {
-    console.warn('Specialist self-evaluation failed:', err?.message || err);
+  }).catch((err: unknown) => {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn('Specialist self-evaluation failed:', message);
   });
 }
 
