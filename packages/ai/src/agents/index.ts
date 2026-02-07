@@ -10,3 +10,4 @@ export {
 } from './specialists';
 export { activateSystemExpert } from './system-expert/system-expert';
 export type { SystemExpertResult } from './system-expert/system-expert';
+export { generateBriefing } from './manager/briefing-generator';
