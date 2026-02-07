@@ -4,6 +4,7 @@ export * from './types/document';
 export * from './types/provision';
 export * from './types/diligence';
 export * from './types/email';
+export * from './types/events';
 export * from './constants/deal-enums';
 export * from './rules/checklist-rules';
 export * from './utils/deal-utils';
