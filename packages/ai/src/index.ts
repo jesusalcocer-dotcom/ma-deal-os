@@ -32,6 +32,8 @@ export { VariantGenerator } from './evaluation/variant-generator';
 export type { VariantOutput, VariantComparisonResult } from './evaluation/variant-generator';
 export { VARIANT_STRATEGIES } from './evaluation/variant-strategies';
 export type { VariantStrategy } from './evaluation/variant-strategies';
+export { ExemplarService } from './evaluation/exemplar-service';
+export type { Exemplar, ExemplarComparison, DealCharacteristics } from './evaluation/exemplar-service';
 export type { SpendCheck, SpendBehavior } from './evaluation/spend-tracker';
 export type { EvaluatorRubric, EvaluatorCriterion, CriterionScore, SelfEvaluation, ConsistencyResult, OutcomeSignal } from './evaluation/types';
 export { ModelRouter } from './routing/model-router';
