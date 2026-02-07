@@ -10,3 +10,5 @@ export { identifyFirm } from './precedent/firm-identifier';
 export type { FirmIdentificationResult } from './precedent/firm-identifier';
 export { scoreFormulation } from './precedent/quality-scorer';
 export type { QualityScores } from './precedent/quality-scorer';
+export { searchPrecedent } from './precedent/quality-retrieval';
+export type { PrecedentSearchParams, PrecedentResult } from './precedent/quality-retrieval';
