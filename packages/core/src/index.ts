@@ -22,3 +22,4 @@ export { SimulationClock } from './simulation/simulation-clock';
 export { SimulationManager } from './simulation/simulation-manager';
 export { seedScenario } from './simulation/scenario-seeder';
 export type { ScenarioContext } from './simulation/scenario-seeder';
+export { SimulationRunner } from './simulation/simulation-runner';
