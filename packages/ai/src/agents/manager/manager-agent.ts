@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAnthropicClient } from '../../client';
 import { loadManagerContext } from './context-loader';
 import { buildManagerPrompt } from './system-prompt';
+import { ModelRouter } from '../../routing/model-router';
 import type {
   ManagerContext,
   AgentActivationRecord,
@@ -97,9 +98,29 @@ export async function activateManager(
   }
   messages.push({ role: 'user', content: userMessage });
 
-  // 4. Select model
-  const model =
-    modelOverride || selectModel(triggerType, triggerSource);
+  // 4. Select model — use ModelRouter if no override, fall back to legacy selectModel
+  let model: string;
+  let routerSelection: { model: string; reason: string } | undefined;
+  if (modelOverride) {
+    model = modelOverride;
+  } else {
+    try {
+      const router = new ModelRouter(supabase);
+      const dealParams = context.deal?.parameters as Record<string, unknown> | undefined;
+      const selection = await router.getModel('manager_chat', {
+        dealId,
+        dealType: dealParams?.deal_type as string | undefined,
+        industry: dealParams?.industry as string | undefined,
+        jurisdiction: dealParams?.jurisdiction as string | undefined,
+        dealValue: dealParams?.deal_value ? Number(dealParams.deal_value) : undefined,
+      });
+      model = selection.modelId;
+      routerSelection = { model: selection.model, reason: selection.reason };
+    } catch {
+      // Fallback if routing table doesn't exist yet
+      model = selectModel(triggerType, triggerSource);
+    }
+  }
 
   // 5. Call Claude
   const anthropic = getAnthropicClient();

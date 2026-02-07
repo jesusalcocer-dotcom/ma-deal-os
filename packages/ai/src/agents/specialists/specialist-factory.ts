@@ -3,24 +3,38 @@
  * Factory for creating dynamically configured specialist agents.
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAnthropicClient } from '../../client';
 import { loadSkills } from '../../skills/skill-loader';
 import { findApplicableSkills } from '../../skills/skill-registry';
+import { ModelRouter } from '../../routing/model-router';
 import type { SpecialistConfig, SpecialistResult, SpecialistRunner } from '../types';
 
 /**
  * Create a specialist runner from a configuration.
  * Returns a function that executes the specialist for a given deal and task input.
+ * Optionally pass a Supabase client to enable ModelRouter-based model selection.
  */
-export function createSpecialist(config: SpecialistConfig): SpecialistRunner {
+export function createSpecialist(config: SpecialistConfig, supabase?: SupabaseClient): SpecialistRunner {
   return async (
     dealId: string,
     taskInput: Record<string, any>
   ): Promise<SpecialistResult> => {
     const startTime = Date.now();
     const anthropic = getAnthropicClient();
-    const model = config.model || 'claude-sonnet-4-5-20250929';
     const maxTokens = config.max_tokens || 4096;
+
+    // Use ModelRouter if supabase available, fall back to config
+    let model = config.model || 'claude-sonnet-4-5-20250929';
+    if (supabase) {
+      try {
+        const router = new ModelRouter(supabase);
+        const selection = await router.getModel(config.task_type, { dealId });
+        model = selection.modelId;
+      } catch {
+        // Fallback to config model if routing table doesn't exist
+      }
+    }
 
     // Discover and load applicable skills
     let skillContent = '';
