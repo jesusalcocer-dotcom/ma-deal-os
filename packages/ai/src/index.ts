@@ -7,3 +7,5 @@ export { generateDisclosureSchedules } from './pipelines/disclosure-generator';
 export type { DisclosureScheduleExtraction, DisclosureGenerationResult } from './pipelines/disclosure-generator';
 export { extractPositionsFromEmail } from './pipelines/position-extractor';
 export type { ExtractedPosition, PositionExtractionResult } from './pipelines/position-extractor';
+export { extractActionItems } from './pipelines/action-item-extractor';
+export type { ExtractedActionItem, ActionItemExtractionResult } from './pipelines/action-item-extractor';

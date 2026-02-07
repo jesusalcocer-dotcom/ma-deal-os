@@ -22,5 +22,7 @@ export const dealEmails = pgTable('deal_emails', {
   attachments: jsonb('attachments').default([]),
   processing_status: text('processing_status').default('pending'),
   action_items: jsonb('action_items').default([]),
+  extracted_positions: jsonb('extracted_positions').default([]),
+  extracted_action_items: jsonb('extracted_action_items').default([]),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
