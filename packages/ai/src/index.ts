@@ -59,3 +59,5 @@ export { MetaAgent } from './agents/meta/meta-agent';
 export type { MetaIntervention, MetaAction, EscalationOption } from './agents/meta/meta-agent';
 export { TriggerDetector } from './agents/meta/trigger-detector';
 export type { MetaTrigger } from './agents/meta/trigger-detector';
+export { classifyEmails, keywordPreFilter } from './pipelines/classify-email';
+export type { EmailForClassification, ClassifiedEmail, EmailClassificationResult } from './pipelines/classify-email';

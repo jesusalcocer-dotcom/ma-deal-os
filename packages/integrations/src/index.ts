@@ -18,3 +18,6 @@ export { ingestFromEdgar } from './precedent/edgar-ingestion';
 export type { IngestionResult, IngestionConfig } from './precedent/edgar-ingestion';
 export { updateQualityFromFeedback } from './precedent/quality-updater';
 export type { QualityFeedbackEvent } from './precedent/quality-updater';
+export { getGmailClient, resetGmailClient } from './gmail/client';
+export { fetchRecentEmails, addLabel, getAttachmentData } from './gmail/fetch-emails';
+export type { GmailMessage, GmailAttachment, FetchEmailsOptions } from './gmail/fetch-emails';
