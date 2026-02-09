@@ -21,3 +21,5 @@ export type { QualityFeedbackEvent } from './precedent/quality-updater';
 export { getGmailClient, resetGmailClient } from './gmail/client';
 export { fetchRecentEmails, addLabel, getAttachmentData } from './gmail/fetch-emails';
 export type { GmailMessage, GmailAttachment, FetchEmailsOptions } from './gmail/fetch-emails';
+export { processGmailPush, startGmailWatch, stopGmailWatch } from './gmail/process-push';
+export type { PushProcessingResult } from './gmail/process-push';
